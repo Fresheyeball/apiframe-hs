@@ -3,6 +3,7 @@ module Web.Apiframe.Types where
 
 import Data.Aeson
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics
 import Data.Time (UTCTime)
 
@@ -313,35 +314,34 @@ instance ToJSON ApiError where
 
 -- Enums
 
-data AspectRatio
-  = AspectRatio1x1
-  | AspectRatio4x3
-  | AspectRatio3x4
-  | AspectRatio16x9
-  | AspectRatio9x16
-  | AspectRatio3x2
-  | AspectRatio2x3
-  deriving (Show, Eq, Generic, Bounded, Enum)
+data AspectRatio = AspectRatio
+  { aspectWidth :: Int
+  , aspectHeight :: Int
+  } deriving (Show, Eq, Generic)
+
+-- | Common aspect ratios for convenience
+aspectRatio1x1, aspectRatio4x3, aspectRatio3x4, aspectRatio16x9, aspectRatio9x16, aspectRatio3x2, aspectRatio2x3 :: AspectRatio
+aspectRatio1x1 = AspectRatio 1 1
+aspectRatio4x3 = AspectRatio 4 3
+aspectRatio3x4 = AspectRatio 3 4
+aspectRatio16x9 = AspectRatio 16 9
+aspectRatio9x16 = AspectRatio 9 16
+aspectRatio3x2 = AspectRatio 3 2
+aspectRatio2x3 = AspectRatio 2 3
 
 instance ToJSON AspectRatio where
-  toJSON AspectRatio1x1 = "1:1"
-  toJSON AspectRatio4x3 = "4:3"
-  toJSON AspectRatio3x4 = "3:4"
-  toJSON AspectRatio16x9 = "16:9"
-  toJSON AspectRatio9x16 = "9:16"
-  toJSON AspectRatio3x2 = "3:2"
-  toJSON AspectRatio2x3 = "2:3"
+  toJSON AspectRatio{..} = toJSON $ show aspectWidth <> ":" <> show aspectHeight
 
 instance FromJSON AspectRatio where
-  parseJSON = withText "AspectRatio" $ \case
-    "1:1" -> pure AspectRatio1x1
-    "4:3" -> pure AspectRatio4x3
-    "3:4" -> pure AspectRatio3x4
-    "16:9" -> pure AspectRatio16x9
-    "9:16" -> pure AspectRatio9x16
-    "3:2" -> pure AspectRatio3x2
-    "2:3" -> pure AspectRatio2x3
-    _ -> fail "Invalid aspect ratio"
+  parseJSON = withText "AspectRatio" $ \t -> do
+    case T.splitOn ":" t of
+      [w, h] -> case (reads $ T.unpack w, reads $ T.unpack h) of
+        ([(width, "")], [(height, "")]) -> 
+          if width > 0 && height > 0
+          then pure $ AspectRatio width height
+          else fail "Aspect ratio dimensions must be positive"
+        _ -> fail "Invalid aspect ratio format"
+      _ -> fail "Aspect ratio must be in format 'width:height'"
 
 data ProcessMode
   = ProcessModeFast

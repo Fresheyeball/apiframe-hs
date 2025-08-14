@@ -19,7 +19,7 @@ main = do
   putStrLn "Generating image..."
   let imagineReq = ImagineRequest
         { imaginePrompt = "a nice day in the desert with my dog"
-        , imagineAspectRatio = Just AspectRatio3x2
+        , imagineAspectRatio = Just (AspectRatio 3 2)
         , imagineProcessMode = Just ProcessModeFast
         , imagineWebhookUrl = Nothing
         , imagineWebhookSecret = Nothing

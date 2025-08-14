@@ -10,7 +10,10 @@ import qualified Data.Text as T
 -- Arbitrary instances for property testing
 
 instance Arbitrary AspectRatio where
-  arbitrary = elements [minBound..]
+  arbitrary = do
+    width <- choose (1, 32)  -- Common aspect ratio range
+    height <- choose (1, 32)
+    return $ AspectRatio width height
 
 instance Arbitrary ProcessMode where
   arbitrary = elements [minBound..]
