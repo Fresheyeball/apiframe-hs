@@ -89,3 +89,8 @@ test-suite apiframe-hs-test
                     , text
                     , http-client
                     , servant-client
+                    , bytestring
+                    , directory
+                    , http-client-tls
+                    , unordered-containers
+                    , vector
