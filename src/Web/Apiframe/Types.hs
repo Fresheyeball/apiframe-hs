@@ -1,39 +1,5 @@
-module Web.Apiframe.Types
-  ( -- * Request Types
-    ImagineRequest(..)
-  , UpscaleRequest(..)
-  , UpscaleAltRequest(..)
-  , UpscaleHighresRequest(..)
-  , RerollRequest(..)
-  , VariationsRequest(..)
-  , InpaintRequest(..)
-  , OutpaintRequest(..)
-  , PanRequest(..)
-  , DescribeRequest(..)
-  , BlendRequest(..)
-  , SeedRequest(..)
-  , FaceswapRequest(..)
-  , FetchRequest(..)
-  , FetchManyRequest(..)
-  
-    -- * Response Types
-  , TaskResponse(..)
-  , FetchResponse(..)
-  , FetchManyResponse(..)
-  , AccountResponse(..)
-  , ErrorResponse(..)
-  , ApiError(..)
-  
-    -- * Enums
-  , AspectRatio(..)
-  , ProcessMode(..)
-  , UpscaleType(..)
-  , UpscaleAltType(..)
-  , ImageIndex(..)
-  , Direction(..)
-  , Dimension(..)
-  , TaskStatus(..)
-  ) where
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
+module Web.Apiframe.Types where
 
 import Data.Aeson
 import Data.Text (Text)
@@ -355,7 +321,7 @@ data AspectRatio
   | AspectRatio9x16
   | AspectRatio3x2
   | AspectRatio2x3
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON AspectRatio where
   toJSON AspectRatio1x1 = "1:1"
@@ -380,7 +346,7 @@ instance FromJSON AspectRatio where
 data ProcessMode
   = ProcessModeFast
   | ProcessModeTurbo
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON ProcessMode where
   toJSON ProcessModeFast = "fast"
@@ -395,7 +361,7 @@ instance FromJSON ProcessMode where
 data UpscaleType
   = Upscale2x
   | Upscale4x
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON UpscaleType where
   toJSON Upscale2x = "2x"
@@ -410,7 +376,7 @@ instance FromJSON UpscaleType where
 data UpscaleAltType
   = UpscaleSubtle
   | UpscaleCreative
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON UpscaleAltType where
   toJSON UpscaleSubtle = "subtle"
@@ -427,7 +393,7 @@ data ImageIndex
   | Index2
   | Index3
   | Index4
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON ImageIndex where
   toJSON Index1 = "1"
@@ -448,7 +414,7 @@ data Direction
   | DirectionDown
   | DirectionLeft
   | DirectionRight
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON Direction where
   toJSON DirectionUp = "up"
@@ -468,7 +434,7 @@ data Dimension
   = DimensionSquare
   | DimensionPortrait
   | DimensionLandscape
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance ToJSON Dimension where
   toJSON DimensionSquare = "square"
@@ -487,7 +453,7 @@ data TaskStatus
   | StatusProcessing
   | StatusCompleted
   | StatusFailed
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance FromJSON TaskStatus where
   parseJSON = withText "TaskStatus" $ \case

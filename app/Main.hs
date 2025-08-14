@@ -1,8 +1,7 @@
-module Main where
+module Main (main) where
 
-import Data.Text (Text)
-import Data.Text.IO as T
-import System.Environment (getEnv, lookupEnv)
+import qualified Data.Text as T
+import System.Environment (lookupEnv)
 import Web.Apiframe.Client
 
 main :: IO ()

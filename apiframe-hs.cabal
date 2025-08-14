@@ -41,6 +41,8 @@ common extensions
                         DataKinds
                         TypeOperators
                         TypeFamilies
+                        DuplicateRecordFields
+                        OverloadedRecordDot
 
 library
     import:           warnings, extensions
@@ -81,6 +83,9 @@ test-suite apiframe-hs-test
     main-is:          Spec.hs
     build-depends:    base
                     , apiframe-hs
+                    , aeson
                     , hspec
+                    , QuickCheck
+                    , text
                     , http-client
                     , servant-client

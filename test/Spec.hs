@@ -1,32 +1,74 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Main (main) where
 
 import Test.Hspec
+import Test.QuickCheck
 import Web.Apiframe.Types
-import Data.Aeson (decode, encode)
+import Data.Aeson (decode, encode, ToJSON, FromJSON)
+import qualified Data.Text as T
+
+-- Arbitrary instances for property testing
+
+instance Arbitrary AspectRatio where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary ProcessMode where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary Direction where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary UpscaleType where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary UpscaleAltType where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary ImageIndex where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary Dimension where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary TaskStatus where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary ApiError where
+  arbitrary = do
+    msg <- T.pack <$> arbitrary
+    return ApiError { apiErrorMsg = msg }
+
+-- Property: JSON round-trip should preserve data
+jsonRoundTrip :: (Eq a, ToJSON a, FromJSON a) => a -> Bool
+jsonRoundTrip x = decode (encode x) == Just x
 
 main :: IO ()
 main = hspec $ do
   describe "Web.Apiframe.Types" $ do
-    describe "JSON encoding/decoding" $ do
-      it "encodes and decodes AspectRatio correctly" $ do
-        let ar = AspectRatio16x9
-        decode (encode ar) `shouldBe` Just ar
+    describe "JSON encoding/decoding properties" $ do
+      it "AspectRatio JSON round-trip property" $
+        property (jsonRoundTrip :: AspectRatio -> Bool)
       
-      it "encodes and decodes ProcessMode correctly" $ do
-        let pm = ProcessModeTurbo
-        decode (encode pm) `shouldBe` Just pm
+      it "ProcessMode JSON round-trip property" $
+        property (jsonRoundTrip :: ProcessMode -> Bool)
       
-      it "encodes and decodes Direction correctly" $ do
-        let dir = DirectionUp
-        decode (encode dir) `shouldBe` Just dir
+      it "Direction JSON round-trip property" $
+        property (jsonRoundTrip :: Direction -> Bool)
       
-      it "encodes ImagineRequest correctly" $ do
-        let req = ImagineRequest
-              { imaginePrompt = "test prompt"
-              , imagineAspectRatio = Just AspectRatio1x1
-              , imagineProcessMode = Just ProcessModeFast
-              , imagineWebhookUrl = Nothing
-              , imagineWebhookSecret = Nothing
-              }
-        let encoded = encode req
-        encoded `shouldSatisfy` (/= "null")
+      it "UpscaleType JSON round-trip property" $
+        property (jsonRoundTrip :: UpscaleType -> Bool)
+      
+      it "UpscaleAltType JSON round-trip property" $
+        property (jsonRoundTrip :: UpscaleAltType -> Bool)
+      
+      it "ImageIndex JSON round-trip property" $
+        property (jsonRoundTrip :: ImageIndex -> Bool)
+      
+      it "Dimension JSON round-trip property" $
+        property (jsonRoundTrip :: Dimension -> Bool)
+      
+      it "TaskStatus JSON round-trip property" $
+        property (jsonRoundTrip :: TaskStatus -> Bool)
+      
+      it "ApiError JSON round-trip property" $
+        property (jsonRoundTrip :: ApiError -> Bool)

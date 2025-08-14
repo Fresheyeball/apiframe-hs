@@ -26,10 +26,10 @@
           apiframe-hs = apiframe-hs;
         };
 
-        devShells.default = pkgs.mkShell {
+        devShells.default = haskellPackages.shellFor {
+          packages = p: [ p.apiframe-hs ];
           buildInputs = with pkgs; [
             # Haskell development tools
-            haskellPackages.ghc
             haskellPackages.cabal-install
             haskellPackages.haskell-language-server
             haskellPackages.hlint
