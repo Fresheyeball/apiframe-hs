@@ -1,0 +1,86 @@
+cabal-version:      3.0
+name:               apiframe-hs
+version:            0.1.0.0
+synopsis:           Haskell client library for APIFRAME.PRO (Midjourney API)
+description:        A type-safe Haskell client for the APIFRAME.PRO service, providing 
+                    programmatic access to Midjourney AI image generation. Built using 
+                    Servant for automatic client generation from API types.
+homepage:           https://github.com/yourusername/apiframe-hs
+license:            MIT
+license-file:       LICENSE
+author:             Your Name
+maintainer:         your.email@example.com
+category:           Web, Graphics
+build-type:         Simple
+extra-doc-files:    README.md
+                    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+                 -Wcompat
+                 -Widentities
+                 -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns
+                 -Wmissing-export-lists
+                 -Wmissing-home-modules
+                 -Wpartial-fields
+                 -Wredundant-constraints
+
+common extensions
+    default-extensions: OverloadedStrings
+                        DeriveGeneric
+                        DerivingStrategies
+                        GeneralizedNewtypeDeriving
+                        LambdaCase
+                        RecordWildCards
+                        TypeApplications
+                        ScopedTypeVariables
+                        FlexibleContexts
+                        FlexibleInstances
+                        MultiParamTypeClasses
+                        DataKinds
+                        TypeOperators
+                        TypeFamilies
+
+library
+    import:           warnings, extensions
+    exposed-modules:  Web.Apiframe.API
+                      Web.Apiframe.Client
+                      Web.Apiframe.Types
+    other-modules:    Web.Apiframe.Internal
+    build-depends:    base
+                    , aeson
+                    , bytestring
+                    , containers
+                    , http-client
+                    , http-client-tls
+                    , http-types
+                    , mtl
+                    , servant
+                    , servant-client
+                    , text
+                    , time
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+executable apiframe-example
+    import:           warnings, extensions
+    main-is:          Main.hs
+    build-depends:    base
+                    , apiframe-hs
+                    , text
+                    , bytestring
+    hs-source-dirs:   app
+    default-language: Haskell2010
+
+test-suite apiframe-hs-test
+    import:           warnings, extensions
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Spec.hs
+    build-depends:    base
+                    , apiframe-hs
+                    , hspec
+                    , http-client
+                    , servant-client

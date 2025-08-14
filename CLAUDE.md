@@ -53,3 +53,7 @@ Key methods include:
 - Error messages are extracted from `error?.response?.data?.errors?.at(0)?.msg`
 - The `verbose` flag enables response logging for debugging
 - API key is required and validated in the constructor
+
+## Claude Interaction Guidelines
+
+- Do not ask permission to run basic bash commands like `ls`, `grep`, `mkdir`, `rg`, `find`, etc...
