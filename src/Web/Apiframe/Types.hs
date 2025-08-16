@@ -10,95 +10,44 @@ import Data.Time (UTCTime)
 -- Newtype wrappers for domain-specific text values
 
 newtype TaskId = TaskId Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype Prompt = Prompt Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype ImageUrl = ImageUrl Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype Base64Image = Base64Image Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype VariationsIndex = VariationsIndex Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype WebhookUrl = WebhookUrl Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype WebhookSecret = WebhookSecret Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype Email = Email Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype Plan = Plan Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 newtype ErrorMessage = ErrorMessage Text
-  deriving (Show, Eq, Generic)
-
--- JSON instances for newtypes
-instance ToJSON TaskId where
-  toJSON (TaskId t) = toJSON t
-
-instance FromJSON TaskId where
-  parseJSON v = TaskId <$> parseJSON v
-
-instance ToJSON Prompt where
-  toJSON (Prompt t) = toJSON t
-
-instance FromJSON Prompt where
-  parseJSON v = Prompt <$> parseJSON v
-
-instance ToJSON ImageUrl where
-  toJSON (ImageUrl t) = toJSON t
-
-instance FromJSON ImageUrl where
-  parseJSON v = ImageUrl <$> parseJSON v
-
-instance ToJSON Base64Image where
-  toJSON (Base64Image t) = toJSON t
-
-instance FromJSON Base64Image where
-  parseJSON v = Base64Image <$> parseJSON v
-
-instance ToJSON VariationsIndex where
-  toJSON (VariationsIndex t) = toJSON t
-
-instance FromJSON VariationsIndex where
-  parseJSON v = VariationsIndex <$> parseJSON v
-
-instance ToJSON WebhookUrl where
-  toJSON (WebhookUrl t) = toJSON t
-
-instance FromJSON WebhookUrl where
-  parseJSON v = WebhookUrl <$> parseJSON v
-
-instance ToJSON WebhookSecret where
-  toJSON (WebhookSecret t) = toJSON t
-
-instance FromJSON WebhookSecret where
-  parseJSON v = WebhookSecret <$> parseJSON v
-
-instance ToJSON Email where
-  toJSON (Email t) = toJSON t
-
-instance FromJSON Email where
-  parseJSON v = Email <$> parseJSON v
-
-instance ToJSON Plan where
-  toJSON (Plan t) = toJSON t
-
-instance FromJSON Plan where
-  parseJSON v = Plan <$> parseJSON v
-
-instance ToJSON ErrorMessage where
-  toJSON (ErrorMessage t) = toJSON t
-
-instance FromJSON ErrorMessage where
-  parseJSON v = ErrorMessage <$> parseJSON v
+  deriving stock (Generic)
+  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
 
 -- Helper functions to extract underlying text values
 unTaskId :: TaskId -> Text
