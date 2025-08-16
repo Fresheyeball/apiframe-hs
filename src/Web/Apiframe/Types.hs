@@ -7,14 +7,138 @@ import qualified Data.Text as T
 import GHC.Generics
 import Data.Time (UTCTime)
 
+-- Newtype wrappers for domain-specific text values
+
+newtype TaskId = TaskId Text
+  deriving (Show, Eq, Generic)
+
+newtype Prompt = Prompt Text
+  deriving (Show, Eq, Generic)
+
+newtype ImageUrl = ImageUrl Text
+  deriving (Show, Eq, Generic)
+
+newtype Base64Image = Base64Image Text
+  deriving (Show, Eq, Generic)
+
+newtype VariationsIndex = VariationsIndex Text
+  deriving (Show, Eq, Generic)
+
+newtype WebhookUrl = WebhookUrl Text
+  deriving (Show, Eq, Generic)
+
+newtype WebhookSecret = WebhookSecret Text
+  deriving (Show, Eq, Generic)
+
+newtype Email = Email Text
+  deriving (Show, Eq, Generic)
+
+newtype Plan = Plan Text
+  deriving (Show, Eq, Generic)
+
+newtype ErrorMessage = ErrorMessage Text
+  deriving (Show, Eq, Generic)
+
+-- JSON instances for newtypes
+instance ToJSON TaskId where
+  toJSON (TaskId t) = toJSON t
+
+instance FromJSON TaskId where
+  parseJSON v = TaskId <$> parseJSON v
+
+instance ToJSON Prompt where
+  toJSON (Prompt t) = toJSON t
+
+instance FromJSON Prompt where
+  parseJSON v = Prompt <$> parseJSON v
+
+instance ToJSON ImageUrl where
+  toJSON (ImageUrl t) = toJSON t
+
+instance FromJSON ImageUrl where
+  parseJSON v = ImageUrl <$> parseJSON v
+
+instance ToJSON Base64Image where
+  toJSON (Base64Image t) = toJSON t
+
+instance FromJSON Base64Image where
+  parseJSON v = Base64Image <$> parseJSON v
+
+instance ToJSON VariationsIndex where
+  toJSON (VariationsIndex t) = toJSON t
+
+instance FromJSON VariationsIndex where
+  parseJSON v = VariationsIndex <$> parseJSON v
+
+instance ToJSON WebhookUrl where
+  toJSON (WebhookUrl t) = toJSON t
+
+instance FromJSON WebhookUrl where
+  parseJSON v = WebhookUrl <$> parseJSON v
+
+instance ToJSON WebhookSecret where
+  toJSON (WebhookSecret t) = toJSON t
+
+instance FromJSON WebhookSecret where
+  parseJSON v = WebhookSecret <$> parseJSON v
+
+instance ToJSON Email where
+  toJSON (Email t) = toJSON t
+
+instance FromJSON Email where
+  parseJSON v = Email <$> parseJSON v
+
+instance ToJSON Plan where
+  toJSON (Plan t) = toJSON t
+
+instance FromJSON Plan where
+  parseJSON v = Plan <$> parseJSON v
+
+instance ToJSON ErrorMessage where
+  toJSON (ErrorMessage t) = toJSON t
+
+instance FromJSON ErrorMessage where
+  parseJSON v = ErrorMessage <$> parseJSON v
+
+-- Helper functions to extract underlying text values
+unTaskId :: TaskId -> Text
+unTaskId (TaskId t) = t
+
+unPrompt :: Prompt -> Text  
+unPrompt (Prompt t) = t
+
+unImageUrl :: ImageUrl -> Text
+unImageUrl (ImageUrl t) = t
+
+unBase64Image :: Base64Image -> Text
+unBase64Image (Base64Image t) = t
+
+unVariationsIndex :: VariationsIndex -> Text
+unVariationsIndex (VariationsIndex t) = t
+
+unWebhookUrl :: WebhookUrl -> Text
+unWebhookUrl (WebhookUrl t) = t
+
+unWebhookSecret :: WebhookSecret -> Text
+unWebhookSecret (WebhookSecret t) = t
+
+unEmail :: Email -> Text
+unEmail (Email t) = t
+
+unPlan :: Plan -> Text
+unPlan (Plan t) = t
+
+unErrorMessage :: ErrorMessage -> Text
+unErrorMessage (ErrorMessage t) = t
+
 -- Request Types
 
 data ImagineRequest = ImagineRequest
-  { imaginePrompt :: Text
+  { imaginePrompt :: Prompt
   , imagineAspectRatio :: Maybe AspectRatio
   , imagineProcessMode :: Maybe ProcessMode
-  , imagineWebhookUrl :: Maybe Text
-  , imagineWebhookSecret :: Maybe Text
+  , imagineWebhookUrl :: Maybe WebhookUrl
+  , imagineWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON ImagineRequest where
@@ -27,10 +151,10 @@ instance ToJSON ImagineRequest where
     ]
 
 data UpscaleRequest = UpscaleRequest
-  { upscaleParentTaskId :: Text
+  { upscaleParentTaskId :: TaskId
   , upscaleIndex :: ImageIndex
-  , upscaleWebhookUrl :: Maybe Text
-  , upscaleWebhookSecret :: Maybe Text
+  , upscaleWebhookUrl :: Maybe WebhookUrl
+  , upscaleWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON UpscaleRequest where
@@ -42,10 +166,10 @@ instance ToJSON UpscaleRequest where
     ]
 
 data UpscaleAltRequest = UpscaleAltRequest
-  { upscaleAltParentTaskId :: Text
+  { upscaleAltParentTaskId :: TaskId
   , upscaleAltType :: UpscaleAltType
-  , upscaleAltWebhookUrl :: Maybe Text
-  , upscaleAltWebhookSecret :: Maybe Text
+  , upscaleAltWebhookUrl :: Maybe WebhookUrl
+  , upscaleAltWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON UpscaleAltRequest where
@@ -57,10 +181,10 @@ instance ToJSON UpscaleAltRequest where
     ]
 
 data UpscaleHighresRequest = UpscaleHighresRequest
-  { upscaleHighresParentTaskId :: Text
+  { upscaleHighresParentTaskId :: TaskId
   , upscaleHighresType :: UpscaleType
-  , upscaleHighresWebhookUrl :: Maybe Text
-  , upscaleHighresWebhookSecret :: Maybe Text
+  , upscaleHighresWebhookUrl :: Maybe WebhookUrl
+  , upscaleHighresWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON UpscaleHighresRequest where
@@ -72,11 +196,11 @@ instance ToJSON UpscaleHighresRequest where
     ]
 
 data RerollRequest = RerollRequest
-  { rerollParentTaskId :: Text
-  , rerollPrompt :: Maybe Text
+  { rerollParentTaskId :: TaskId
+  , rerollPrompt :: Maybe Prompt
   , rerollAspectRatio :: Maybe AspectRatio
-  , rerollWebhookUrl :: Maybe Text
-  , rerollWebhookSecret :: Maybe Text
+  , rerollWebhookUrl :: Maybe WebhookUrl
+  , rerollWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON RerollRequest where
@@ -89,12 +213,12 @@ instance ToJSON RerollRequest where
     ]
 
 data VariationsRequest = VariationsRequest
-  { variationsParentTaskId :: Text
-  , variationsIndex :: Text -- Can be "1", "2", "3", "4", "strong", or "subtle"
-  , variationsPrompt :: Maybe Text
+  { variationsParentTaskId :: TaskId
+  , variationsIndex :: VariationsIndex -- Can be "1", "2", "3", "4", "strong", or "subtle"
+  , variationsPrompt :: Maybe Prompt
   , variationsAspectRatio :: Maybe AspectRatio
-  , variationsWebhookUrl :: Maybe Text
-  , variationsWebhookSecret :: Maybe Text
+  , variationsWebhookUrl :: Maybe WebhookUrl
+  , variationsWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON VariationsRequest where
@@ -108,11 +232,11 @@ instance ToJSON VariationsRequest where
     ]
 
 data InpaintRequest = InpaintRequest
-  { inpaintParentTaskId :: Text
-  , inpaintMask :: Text -- Base64 encoded image
-  , inpaintPrompt :: Maybe Text
-  , inpaintWebhookUrl :: Maybe Text
-  , inpaintWebhookSecret :: Maybe Text
+  { inpaintParentTaskId :: TaskId
+  , inpaintMask :: Base64Image -- Base64 encoded image
+  , inpaintPrompt :: Maybe Prompt
+  , inpaintWebhookUrl :: Maybe WebhookUrl
+  , inpaintWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON InpaintRequest where
@@ -125,12 +249,12 @@ instance ToJSON InpaintRequest where
     ]
 
 data OutpaintRequest = OutpaintRequest
-  { outpaintParentTaskId :: Text
+  { outpaintParentTaskId :: TaskId
   , outpaintZoomRatio :: Double -- Can be 1, 1.5, 2 or (1, 2]
   , outpaintAspectRatio :: Maybe AspectRatio
-  , outpaintPrompt :: Maybe Text
-  , outpaintWebhookUrl :: Maybe Text
-  , outpaintWebhookSecret :: Maybe Text
+  , outpaintPrompt :: Maybe Prompt
+  , outpaintWebhookUrl :: Maybe WebhookUrl
+  , outpaintWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON OutpaintRequest where
@@ -144,11 +268,11 @@ instance ToJSON OutpaintRequest where
     ]
 
 data PanRequest = PanRequest
-  { panParentTaskId :: Text
+  { panParentTaskId :: TaskId
   , panDirection :: Direction
-  , panPrompt :: Maybe Text
-  , panWebhookUrl :: Maybe Text
-  , panWebhookSecret :: Maybe Text
+  , panPrompt :: Maybe Prompt
+  , panWebhookUrl :: Maybe WebhookUrl
+  , panWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON PanRequest where
@@ -161,10 +285,10 @@ instance ToJSON PanRequest where
     ]
 
 data DescribeRequest = DescribeRequest
-  { describeImageUrl :: Text
+  { describeImageUrl :: ImageUrl
   , describeProcessMode :: Maybe ProcessMode
-  , describeWebhookUrl :: Maybe Text
-  , describeWebhookSecret :: Maybe Text
+  , describeWebhookUrl :: Maybe WebhookUrl
+  , describeWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON DescribeRequest where
@@ -176,11 +300,11 @@ instance ToJSON DescribeRequest where
     ]
 
 data BlendRequest = BlendRequest
-  { blendImageUrls :: [Text] -- Min 2, max 5
+  { blendImageUrls :: [ImageUrl] -- Min 2, max 5
   , blendDimension :: Maybe Dimension
   , blendProcessMode :: Maybe ProcessMode
-  , blendWebhookUrl :: Maybe Text
-  , blendWebhookSecret :: Maybe Text
+  , blendWebhookUrl :: Maybe WebhookUrl
+  , blendWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON BlendRequest where
@@ -193,9 +317,9 @@ instance ToJSON BlendRequest where
     ]
 
 data SeedRequest = SeedRequest
-  { seedTaskId :: Text
-  , seedWebhookUrl :: Maybe Text
-  , seedWebhookSecret :: Maybe Text
+  { seedTaskId :: TaskId
+  , seedWebhookUrl :: Maybe WebhookUrl
+  , seedWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON SeedRequest where
@@ -206,10 +330,10 @@ instance ToJSON SeedRequest where
     ]
 
 data FaceswapRequest = FaceswapRequest
-  { faceswapTargetImageUrl :: Text
-  , faceswapSwapImageUrl :: Text
-  , faceswapWebhookUrl :: Maybe Text
-  , faceswapWebhookSecret :: Maybe Text
+  { faceswapTargetImageUrl :: ImageUrl
+  , faceswapSwapImageUrl :: ImageUrl
+  , faceswapWebhookUrl :: Maybe WebhookUrl
+  , faceswapWebhookSecret :: Maybe WebhookSecret
   } deriving (Show, Eq, Generic)
 
 instance ToJSON FaceswapRequest where
@@ -221,7 +345,7 @@ instance ToJSON FaceswapRequest where
     ]
 
 data FetchRequest = FetchRequest
-  { fetchTaskId :: Text
+  { fetchTaskId :: TaskId
   } deriving (Show, Eq, Generic)
 
 instance ToJSON FetchRequest where
@@ -230,7 +354,7 @@ instance ToJSON FetchRequest where
     ]
 
 data FetchManyRequest = FetchManyRequest
-  { fetchManyTaskIds :: [Text] -- Min 2, max 20
+  { fetchManyTaskIds :: [TaskId] -- Min 2, max 20
   } deriving (Show, Eq, Generic)
 
 instance ToJSON FetchManyRequest where
@@ -241,7 +365,7 @@ instance ToJSON FetchManyRequest where
 -- Response Types
 
 data TaskResponse = TaskResponse
-  { taskId :: Text
+  { taskId :: TaskId
   , taskErrors :: Maybe [ApiError]
   } deriving (Show, Eq, Generic)
 
@@ -251,9 +375,9 @@ instance FromJSON TaskResponse where
     <*> v .:? "errors"
 
 data FetchResponse = FetchResponse
-  { fetchTaskId :: Text
+  { fetchTaskId :: TaskId
   , fetchStatus :: TaskStatus
-  , fetchPrompt :: Maybe Text
+  , fetchPrompt :: Maybe Prompt
   , fetchResult :: Maybe Value -- Can contain various result data
   , fetchCreatedAt :: Maybe UTCTime
   , fetchUpdatedAt :: Maybe UTCTime
@@ -276,9 +400,9 @@ instance FromJSON FetchManyResponse where
   parseJSON v = FetchManyResponse <$> parseJSON v
 
 data AccountResponse = AccountResponse
-  { accountEmail :: Text
+  { accountEmail :: Email
   , accountCredits :: Double
-  , accountPlan :: Text
+  , accountPlan :: Plan
   , accountNextBillingDate :: Maybe Text
   , accountTotalImages :: Int
   } deriving (Show, Eq, Generic)
@@ -300,7 +424,7 @@ instance FromJSON ErrorResponse where
     <$> v .: "errors"
 
 data ApiError = ApiError
-  { apiErrorMsg :: Text
+  { apiErrorMsg :: ErrorMessage
   } deriving (Show, Eq, Generic)
 
 instance FromJSON ApiError where

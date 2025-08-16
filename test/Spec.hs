@@ -43,10 +43,41 @@ instance Arbitrary Dimension where
 instance Arbitrary TaskStatus where
   arbitrary = elements [minBound..]
 
+-- Arbitrary instances for newtypes
+instance Arbitrary TaskId where
+  arbitrary = TaskId . T.pack <$> arbitrary
+
+instance Arbitrary Prompt where
+  arbitrary = Prompt . T.pack <$> arbitrary
+
+instance Arbitrary ImageUrl where
+  arbitrary = ImageUrl . T.pack <$> arbitrary
+
+instance Arbitrary Base64Image where
+  arbitrary = Base64Image . T.pack <$> arbitrary
+
+instance Arbitrary VariationsIndex where
+  arbitrary = VariationsIndex . T.pack <$> arbitrary
+
+instance Arbitrary WebhookUrl where
+  arbitrary = WebhookUrl . T.pack <$> arbitrary
+
+instance Arbitrary WebhookSecret where
+  arbitrary = WebhookSecret . T.pack <$> arbitrary
+
+instance Arbitrary Email where
+  arbitrary = Email . T.pack <$> arbitrary
+
+instance Arbitrary Plan where
+  arbitrary = Plan . T.pack <$> arbitrary
+
+instance Arbitrary ErrorMessage where
+  arbitrary = ErrorMessage . T.pack <$> arbitrary
+
 instance Arbitrary ApiError where
   arbitrary = do
     msg <- T.pack <$> arbitrary
-    return ApiError { apiErrorMsg = msg }
+    return ApiError { apiErrorMsg = ErrorMessage msg }
 
 -- Property: JSON round-trip should preserve data
 jsonRoundTrip :: (Eq a, ToJSON a, FromJSON a) => a -> Bool
@@ -99,6 +130,37 @@ main = hspec $ do
       
       it "ApiError JSON round-trip property" $
         property (jsonRoundTrip :: ApiError -> Bool)
+      
+      -- Newtype JSON round-trip tests
+      it "TaskId JSON round-trip property" $
+        property (jsonRoundTrip :: TaskId -> Bool)
+      
+      it "Prompt JSON round-trip property" $
+        property (jsonRoundTrip :: Prompt -> Bool)
+      
+      it "ImageUrl JSON round-trip property" $
+        property (jsonRoundTrip :: ImageUrl -> Bool)
+      
+      it "Base64Image JSON round-trip property" $
+        property (jsonRoundTrip :: Base64Image -> Bool)
+      
+      it "VariationsIndex JSON round-trip property" $
+        property (jsonRoundTrip :: VariationsIndex -> Bool)
+      
+      it "WebhookUrl JSON round-trip property" $
+        property (jsonRoundTrip :: WebhookUrl -> Bool)
+      
+      it "WebhookSecret JSON round-trip property" $
+        property (jsonRoundTrip :: WebhookSecret -> Bool)
+      
+      it "Email JSON round-trip property" $
+        property (jsonRoundTrip :: Email -> Bool)
+      
+      it "Plan JSON round-trip property" $
+        property (jsonRoundTrip :: Plan -> Bool)
+      
+      it "ErrorMessage JSON round-trip property" $
+        property (jsonRoundTrip :: ErrorMessage -> Bool)
 
   -- Integration test (only runs if API key is set)
   describe "Web.Apiframe.Client Integration" $ do
@@ -113,7 +175,7 @@ main = hspec $ do
           
           -- Generate an image (matching README example)
           let request = ImagineRequest
-                { imaginePrompt = "a nice day in the desert with my dog"
+                { imaginePrompt = Prompt "a nice day in the desert with my dog"
                 , imagineAspectRatio = Just (AspectRatio 3 2)  -- 3:2 ratio
                 , imagineProcessMode = Just ProcessModeFast
                 , imagineWebhookUrl = Nothing
@@ -125,7 +187,7 @@ main = hspec $ do
             Left err -> expectationFailure $ "API call failed: " ++ show err
             Right TaskResponse{..} -> do
               -- Task was submitted successfully
-              taskId `shouldSatisfy` (not . T.null)
+              taskId `shouldSatisfy` (not . T.null . unTaskId)
               
               -- Wait for task to complete and fetch result
               let fetchReq = FetchRequest { fetchTaskId = taskId }
@@ -144,7 +206,7 @@ main = hspec $ do
                                 Just imageUrl -> do
                                   -- Create output directory
                                   createDirectoryIfMissing True "test-output"
-                                  let filename = "test-output/readme-example-" ++ T.unpack taskId ++ ".jpg"
+                                  let filename = "test-output/readme-example-" ++ T.unpack (unTaskId taskId) ++ ".jpg"
                                   
                                   -- Download and save the image
                                   downloadImage imageUrl filename
