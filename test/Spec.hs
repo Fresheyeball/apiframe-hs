@@ -74,10 +74,109 @@ instance Arbitrary Plan where
 instance Arbitrary ErrorMessage where
   arbitrary = ErrorMessage . T.pack <$> arbitrary
 
+instance Arbitrary PngUrl where
+  arbitrary = PngUrl . T.pack <$> arbitrary
+
+instance Arbitrary Mp4Url where
+  arbitrary = Mp4Url . T.pack <$> arbitrary
+
+instance Arbitrary Percentage where
+  arbitrary = Percentage <$> choose (0, 100)
+
+instance Arbitrary Seed where
+  arbitrary = Seed . T.pack <$> arbitrary
+
+instance Arbitrary Sref where
+  arbitrary = Sref . T.pack <$> arbitrary
+
 instance Arbitrary ApiError where
   arbitrary = do
     msg <- T.pack <$> arbitrary
     return ApiError { apiErrorMsg = ErrorMessage msg }
+
+instance Arbitrary TaskType where
+  arbitrary = oneof
+    [ pure TaskTypeImagine
+    , pure TaskTypeImagineVideo
+    , pure TaskTypeReroll
+    , TaskTypeUpscale <$> arbitrary
+    , pure TaskTypeUpscaleCreative
+    , pure TaskTypeUpscaleSubtle
+    , pure TaskTypeUpscale2x
+    , pure TaskTypeUpscale4x
+    , TaskTypeVariation <$> arbitrary
+    , pure TaskTypeVariationStrong
+    , pure TaskTypeVariationSubtle
+    , pure TaskTypeFaceswap
+    , pure TaskTypeInpaint
+    , TaskTypeOutpaint <$> choose (1, 4)
+    , TaskTypePan <$> arbitrary
+    , pure TaskTypeShorten
+    , pure TaskTypeDescribe
+    , pure TaskTypeBlend
+    , pure TaskTypeSeed
+    ]
+
+-- Arbitrary instances for FetchResponse record types
+instance Arbitrary FetchProcessing where
+  arbitrary = FetchProcessing <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary FetchImagineComplete where
+  arbitrary = FetchImagineComplete <$> arbitrary <*> pure TaskTypeImagine <*> arbitrary <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchImagineVideoComplete where
+  arbitrary = FetchImagineVideoComplete <$> arbitrary <*> pure TaskTypeImagineVideo <*> listOf arbitrary
+
+instance Arbitrary FetchRerollComplete where
+  arbitrary = FetchRerollComplete <$> arbitrary <*> pure TaskTypeReroll <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchUpscaleComplete where
+  arbitrary = FetchUpscaleComplete <$> arbitrary <*> (TaskTypeUpscale <$> arbitrary) <*> arbitrary
+
+instance Arbitrary FetchVariationComplete where
+  arbitrary = FetchVariationComplete <$> arbitrary <*> (TaskTypeVariation <$> arbitrary) <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchFaceswapComplete where
+  arbitrary = FetchFaceswapComplete <$> arbitrary <*> pure TaskTypeFaceswap <*> arbitrary
+
+instance Arbitrary FetchInpaintComplete where
+  arbitrary = FetchInpaintComplete <$> arbitrary <*> pure TaskTypeInpaint <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchOutpaintComplete where
+  arbitrary = FetchOutpaintComplete <$> arbitrary <*> (TaskTypeOutpaint <$> choose (1, 4)) <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchPanComplete where
+  arbitrary = FetchPanComplete <$> arbitrary <*> (TaskTypePan <$> arbitrary) <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchShortenComplete where
+  arbitrary = FetchShortenComplete <$> arbitrary <*> pure TaskTypeShorten <*> listOf (T.pack <$> arbitrary) <*> (fmap (T.pack) <$> arbitrary)
+
+instance Arbitrary FetchDescribeComplete where
+  arbitrary = FetchDescribeComplete <$> arbitrary <*> pure TaskTypeDescribe <*> arbitrary <*> listOf (T.pack <$> arbitrary)
+
+instance Arbitrary FetchBlendComplete where
+  arbitrary = FetchBlendComplete <$> arbitrary <*> pure TaskTypeBlend <*> arbitrary <*> listOf arbitrary
+
+instance Arbitrary FetchSeedComplete where
+  arbitrary = FetchSeedComplete <$> arbitrary <*> pure TaskTypeSeed <*> arbitrary
+
+instance Arbitrary FetchResponse where
+  arbitrary = oneof
+    [ FetchResponseProcessing <$> arbitrary
+    , FetchResponseImagineComplete <$> arbitrary
+    , FetchResponseImagineVideoComplete <$> arbitrary
+    , FetchResponseRerollComplete <$> arbitrary
+    , FetchResponseUpscaleComplete <$> arbitrary
+    , FetchResponseVariationComplete <$> arbitrary
+    , FetchResponseFaceswapComplete <$> arbitrary
+    , FetchResponseInpaintComplete <$> arbitrary
+    , FetchResponseOutpaintComplete <$> arbitrary
+    , FetchResponsePanComplete <$> arbitrary
+    , FetchResponseShortenComplete <$> arbitrary
+    , FetchResponseDescribeComplete <$> arbitrary
+    , FetchResponseBlendComplete <$> arbitrary
+    , FetchResponseSeedComplete <$> arbitrary
+    ]
 
 -- Property: JSON round-trip should preserve data
 jsonRoundTrip :: (Eq a, ToJSON a, FromJSON a) => a -> Bool
@@ -162,6 +261,24 @@ main = hspec $ do
       it "ErrorMessage JSON round-trip property" $
         property (jsonRoundTrip :: ErrorMessage -> Bool)
 
+      it "PngUrl JSON round-trip property" $
+        property (jsonRoundTrip :: PngUrl -> Bool)
+
+      it "Mp4Url JSON round-trip property" $
+        property (jsonRoundTrip :: Mp4Url -> Bool)
+
+      it "Percentage JSON round-trip property" $
+        property (jsonRoundTrip :: Percentage -> Bool)
+
+      it "Seed JSON round-trip property" $
+        property (jsonRoundTrip :: Seed -> Bool)
+
+      it "Sref JSON round-trip property" $
+        property (jsonRoundTrip :: Sref -> Bool)
+
+      it "TaskType JSON round-trip property" $
+        property (jsonRoundTrip :: TaskType -> Bool)
+
   -- Integration test (only runs if API key is set)
   describe "Web.Apiframe.Client Integration" $ do
     it "README.md example - generate image and save to disk" $ do
@@ -200,39 +317,28 @@ main = hspec $ do
                         fetchResult <- fetch client fetchReq
                         case fetchResult of
                           Left err -> expectationFailure $ "Fetch failed: " ++ show err
-                          Right FetchResponse{fetchStatus=status, fetchResult=maybeResult} -> case status of
-                            StatusFinished -> case maybeResult of
-                              Just taskResult -> case extractImageUrl taskResult of
-                                Just imageUrl -> do
+                          Right response -> case response of
+                            FetchResponseProcessing processing -> do
+                              case fetchProcessingStatus processing of
+                                StatusProcessing -> putStrLn $ "🔄 Task processing" ++ maybe "" (\p -> " (" ++ show (unPercentage p) ++ "%)") (fetchProcessingPercentage processing)
+                                StatusStarting -> putStrLn "🚀 Task starting..."
+                                _ -> putStrLn $ "⏳ Task status: " ++ show (fetchProcessingStatus processing)
+                              pollForCompletion (retries - 1)
+                            
+                            FetchResponseImagineComplete imagineResult -> do
+                              let imageUrls = fetchImagineImageUrls imagineResult
+                              if null imageUrls
+                                then expectationFailure "No image URLs returned"
+                                else do
                                   -- Create output directory
                                   createDirectoryIfMissing True "test-output"
-                                  let filename = "test-output/readme-example-" ++ T.unpack (unTaskId taskId) ++ ".jpg"
-
+                                  let firstImageUrl = T.unpack $ unPngUrl $ head imageUrls
+                                  let filename = "test-output/readme-example-" ++ T.unpack (unTaskId taskId) ++ ".png"
+                                  
                                   -- Download and save the image
-                                  downloadImage imageUrl filename
+                                  downloadImage firstImageUrl filename
                                   putStrLn $ "✅ Image saved to: " ++ filename
-
-                                Nothing -> expectationFailure "No image URL found in result"
-                              Nothing -> expectationFailure "No result data returned"
-                            StatusFailed -> expectationFailure "Task failed"
-                            StatusPending -> do
-                              putStrLn "⏳ Task pending, waiting..."
-                              -- Wait 5 seconds before retry (in real app, use proper delay)
-                              pollForCompletion (retries - 1)
-                            StatusProcessing -> do
-                              putStrLn "🔄 Task processing, waiting..."
-                              pollForCompletion (retries - 1)
-                            StatusStaged -> do
-                              putStrLn "📋 Task staged, waiting..."
-                              pollForCompletion (retries - 1)
-                            StatusStarting -> do
-                              putStrLn "🚀 Task starting, waiting..."
-                              pollForCompletion (retries - 1)
-                            StatusRetry -> do
-                              putStrLn "🔁 Task retrying, waiting..."
-                              pollForCompletion (retries - 1)
-                            StatusRetrying -> do
-                              putStrLn "🔄 Task retrying, waiting..."
-                              pollForCompletion (retries - 1)
+                            
+                            _ -> expectationFailure $ "Unexpected response type: " ++ show response
 
               pollForCompletion (12 :: Int)  -- Try for ~1 minute with 5s intervals

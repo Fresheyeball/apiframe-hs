@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
-{-# OPTIONS_GHC -Wno-partial-fields #-}
 {-# LANGUAGE DerivingVia #-}
 module Web.Apiframe.Types where
 
@@ -392,88 +391,120 @@ instance FromJSON TaskResponse where
     <$> v .: "task_id"
     <*> v .:? "errors"
 
+-- Fetch Response Record Types
+
+data FetchProcessing = FetchProcessing
+  { fetchProcessingTaskId :: TaskId
+  , fetchProcessingTaskType :: TaskType
+  , fetchProcessingStatus :: TaskStatus
+  , fetchProcessingPercentage :: Maybe Percentage
+  } deriving (Show, Eq, Generic)
+
+data FetchImagineComplete = FetchImagineComplete
+  { fetchImagineTaskId :: TaskId
+  , fetchImagineTaskType :: TaskType
+  , fetchImagineSref :: Maybe Sref
+  , fetchImagineOriginalImageUrl :: PngUrl
+  , fetchImagineImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchImagineVideoComplete = FetchImagineVideoComplete
+  { fetchImagineVideoTaskId :: TaskId
+  , fetchImagineVideoTaskType :: TaskType
+  , fetchImagineVideoUrls :: [Mp4Url]
+  } deriving (Show, Eq, Generic)
+
+data FetchRerollComplete = FetchRerollComplete
+  { fetchRerollTaskId :: TaskId
+  , fetchRerollTaskType :: TaskType
+  , fetchRerollOriginalImageUrl :: PngUrl
+  , fetchRerollImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchUpscaleComplete = FetchUpscaleComplete
+  { fetchUpscaleTaskId :: TaskId
+  , fetchUpscaleTaskType :: TaskType
+  , fetchUpscaleImageUrl :: PngUrl
+  } deriving (Show, Eq, Generic)
+
+data FetchVariationComplete = FetchVariationComplete
+  { fetchVariationTaskId :: TaskId
+  , fetchVariationTaskType :: TaskType
+  , fetchVariationOriginalImageUrl :: PngUrl
+  , fetchVariationImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchFaceswapComplete = FetchFaceswapComplete
+  { fetchFaceswapTaskId :: TaskId
+  , fetchFaceswapTaskType :: TaskType
+  , fetchFaceswapImageUrl :: PngUrl
+  } deriving (Show, Eq, Generic)
+
+data FetchInpaintComplete = FetchInpaintComplete
+  { fetchInpaintTaskId :: TaskId
+  , fetchInpaintTaskType :: TaskType
+  , fetchInpaintOriginalImageUrl :: PngUrl
+  , fetchInpaintImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchOutpaintComplete = FetchOutpaintComplete
+  { fetchOutpaintTaskId :: TaskId
+  , fetchOutpaintTaskType :: TaskType
+  , fetchOutpaintOriginalImageUrl :: PngUrl
+  , fetchOutpaintImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchPanComplete = FetchPanComplete
+  { fetchPanTaskId :: TaskId
+  , fetchPanTaskType :: TaskType
+  , fetchPanOriginalImageUrl :: PngUrl
+  , fetchPanImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchShortenComplete = FetchShortenComplete
+  { fetchShortenTaskId :: TaskId
+  , fetchShortenTaskType :: TaskType
+  , fetchShortenContent :: [Text]
+  , fetchShortenFullContent :: Maybe Text
+  } deriving (Show, Eq, Generic)
+
+data FetchDescribeComplete = FetchDescribeComplete
+  { fetchDescribeTaskId :: TaskId
+  , fetchDescribeTaskType :: TaskType
+  , fetchDescribeImageUrl :: PngUrl
+  , fetchDescribeContent :: [Text]
+  } deriving (Show, Eq, Generic)
+
+data FetchBlendComplete = FetchBlendComplete
+  { fetchBlendTaskId :: TaskId
+  , fetchBlendTaskType :: TaskType
+  , fetchBlendOriginalImageUrl :: PngUrl
+  , fetchBlendImageUrls :: [PngUrl]
+  } deriving (Show, Eq, Generic)
+
+data FetchSeedComplete = FetchSeedComplete
+  { fetchSeedTaskId :: TaskId
+  , fetchSeedTaskType :: TaskType
+  , fetchSeedSeed :: Seed
+  } deriving (Show, Eq, Generic)
+
+-- Fetch Response ADT
+
 data FetchResponse
-  = FetchProcessing
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType
-      , fetchStatus :: Text -- "processing" or "starting"
-      , fetchPercentage :: Maybe Percentage
-      }
-  | FetchImagineComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeImagine
-      , fetchSref :: Maybe Sref
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchImagineVideoComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeImagineVideo
-      , fetchVideoUrls :: [Mp4Url]
-      }
-  | FetchRerollComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeReroll
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchUpscaleComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeUpscale*
-      , fetchImageUrl :: PngUrl
-      }
-  | FetchVariationComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeVariation*
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchFaceswapComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeFaceswap
-      , fetchImageUrl :: PngUrl
-      }
-  | FetchInpaintComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeInpaint
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchOutpaintComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeOutpaint
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchPanComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypePan
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchShortenComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeShorten
-      , fetchContent :: [Text]
-      , fetchFullContent :: Maybe Text
-      }
-  | FetchDescribeComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeDescribe
-      , fetchImageUrl :: PngUrl
-      , fetchContent :: [Text]
-      }
-  | FetchBlendComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeBlend
-      , fetchOriginalImageUrl :: PngUrl
-      , fetchImageUrls :: [PngUrl]
-      }
-  | FetchSeedComplete
-      { fetchTaskId :: TaskId
-      , fetchTaskType :: TaskType -- TaskTypeSeed
-      , fetchSeed :: Seed
-      }
+  = FetchResponseProcessing FetchProcessing
+  | FetchResponseImagineComplete FetchImagineComplete
+  | FetchResponseImagineVideoComplete FetchImagineVideoComplete
+  | FetchResponseRerollComplete FetchRerollComplete
+  | FetchResponseUpscaleComplete FetchUpscaleComplete
+  | FetchResponseVariationComplete FetchVariationComplete
+  | FetchResponseFaceswapComplete FetchFaceswapComplete
+  | FetchResponseInpaintComplete FetchInpaintComplete
+  | FetchResponseOutpaintComplete FetchOutpaintComplete
+  | FetchResponsePanComplete FetchPanComplete
+  | FetchResponseShortenComplete FetchShortenComplete
+  | FetchResponseDescribeComplete FetchDescribeComplete
+  | FetchResponseBlendComplete FetchBlendComplete
+  | FetchResponseSeedComplete FetchSeedComplete
   deriving (Show, Eq, Generic)
 
 instance FromJSON FetchResponse where
@@ -483,98 +514,102 @@ instance FromJSON FetchResponse where
     statusMaybe <- v .:? "status"
     
     case statusMaybe of
-      Just status | status `elem` ["processing", "starting" :: Text] -> 
-        FetchProcessing taskId taskType status
-          <$> v .:? "percentage"
+      Just statusText | statusText `elem` ["processing", "starting" :: Text] -> do
+        let status = case statusText of
+              "processing" -> StatusProcessing
+              "starting" -> StatusStarting
+              _ -> StatusProcessing -- shouldn't happen given the guard
+        percentage <- v .:? "percentage"
+        pure $ FetchResponseProcessing $ FetchProcessing taskId taskType status percentage
       
       _ -> case taskType of
-        TaskTypeImagine -> 
-          FetchImagineComplete taskId taskType
-            <$> v .:? "sref"
-            <*> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeImagine -> do
+          sref <- v .:? "sref"
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseImagineComplete $ FetchImagineComplete taskId taskType sref originalImageUrl imageUrls
         
-        TaskTypeImagineVideo ->
-          FetchImagineVideoComplete taskId taskType
-            <$> v .: "video_urls"
+        TaskTypeImagineVideo -> do
+          videoUrls <- v .: "video_urls"
+          pure $ FetchResponseImagineVideoComplete $ FetchImagineVideoComplete taskId taskType videoUrls
         
-        TaskTypeReroll ->
-          FetchRerollComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeReroll -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseRerollComplete $ FetchRerollComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeUpscale {} -> 
-          FetchUpscaleComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeUpscale {} -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
         
-        TaskTypeUpscaleCreative ->
-          FetchUpscaleComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeUpscaleCreative -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
         
-        TaskTypeUpscaleSubtle ->
-          FetchUpscaleComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeUpscaleSubtle -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
         
-        TaskTypeUpscale2x ->
-          FetchUpscaleComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeUpscale2x -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
         
-        TaskTypeUpscale4x ->
-          FetchUpscaleComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeUpscale4x -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
         
-        TaskTypeVariation {} ->
-          FetchVariationComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeVariation {} -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeVariationStrong ->
-          FetchVariationComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeVariationStrong -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeVariationSubtle ->
-          FetchVariationComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeVariationSubtle -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeFaceswap ->
-          FetchFaceswapComplete taskId taskType
-            <$> v .: "image_url"
+        TaskTypeFaceswap -> do
+          imageUrl <- v .: "image_url"
+          pure $ FetchResponseFaceswapComplete $ FetchFaceswapComplete taskId taskType imageUrl
         
-        TaskTypeInpaint ->
-          FetchInpaintComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeInpaint -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseInpaintComplete $ FetchInpaintComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeOutpaint {} ->
-          FetchOutpaintComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeOutpaint {} -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseOutpaintComplete $ FetchOutpaintComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypePan {} ->
-          FetchPanComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypePan {} -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponsePanComplete $ FetchPanComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeShorten ->
-          FetchShortenComplete taskId taskType
-            <$> v .: "content"
-            <*> v .:? "full_content"
+        TaskTypeShorten -> do
+          content <- v .: "content"
+          fullContent <- v .:? "full_content"
+          pure $ FetchResponseShortenComplete $ FetchShortenComplete taskId taskType content fullContent
         
-        TaskTypeDescribe ->
-          FetchDescribeComplete taskId taskType
-            <$> v .: "image_url"
-            <*> v .: "content"
+        TaskTypeDescribe -> do
+          imageUrl <- v .: "image_url"
+          content <- v .: "content"
+          pure $ FetchResponseDescribeComplete $ FetchDescribeComplete taskId taskType imageUrl content
         
-        TaskTypeBlend ->
-          FetchBlendComplete taskId taskType
-            <$> v .: "original_image_url"
-            <*> v .: "image_urls"
+        TaskTypeBlend -> do
+          originalImageUrl <- v .: "original_image_url"
+          imageUrls <- v .: "image_urls"
+          pure $ FetchResponseBlendComplete $ FetchBlendComplete taskId taskType originalImageUrl imageUrls
         
-        TaskTypeSeed ->
-          FetchSeedComplete taskId taskType
-            <$> v .: "seed"
+        TaskTypeSeed -> do
+          seed <- v .: "seed"
+          pure $ FetchResponseSeedComplete $ FetchSeedComplete taskId taskType seed
 
 newtype FetchManyResponse = FetchManyResponse
   { fetchManyTasks :: [FetchResponse]
