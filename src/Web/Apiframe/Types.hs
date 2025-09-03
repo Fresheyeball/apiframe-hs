@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
+{-# LANGUAGE DerivingVia #-}
 module Web.Apiframe.Types where
 
 import Data.Aeson
@@ -7,51 +8,81 @@ import qualified Data.Text as T
 import GHC.Generics
 import Data.Time (UTCTime)
 
+stripQuotes :: Text -> Text
+stripQuotes = T.replace "\"" ""
+
+newtype NoQuotes = NoQuotes Text
+instance Show NoQuotes where
+  show (NoQuotes t) = T.unpack . stripQuotes . T.pack $ show t
+instance Read NoQuotes where
+  readsPrec _ s =
+    let trimmed = dropWhile (== ' ') s
+    in case trimmed of
+      ('"':_) ->
+        -- Handle quoted string
+        case reads trimmed :: [(String, String)] of
+          [(str, remainder)] -> [(NoQuotes (T.pack str), remainder)]
+          _ -> []
+      _ ->
+        -- Handle unquoted string - read until whitespace or end
+        let (word, remainder) = break (`elem` (" \t\n"::String)) trimmed
+        in ([(NoQuotes (T.pack word), remainder) | not (null word)])
+
 newtype TaskId = TaskId Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype Prompt = Prompt Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype ImageUrl = ImageUrl Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype Base64Image = Base64Image Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype VariationsIndex = VariationsIndex Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype WebhookUrl = WebhookUrl Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype WebhookSecret = WebhookSecret Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype Email = Email Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype Plan = Plan Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 newtype ErrorMessage = ErrorMessage Text
-  deriving stock (Generic, Eq, Show, Read)
-  deriving newtype (ToJSON, FromJSON)
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
 
 -- Helper functions to extract underlying text values
 unTaskId :: TaskId -> Text
 unTaskId (TaskId t) = t
 
-unPrompt :: Prompt -> Text  
+unPrompt :: Prompt -> Text
 unPrompt (Prompt t) = t
 
 unImageUrl :: ImageUrl -> Text
@@ -407,7 +438,7 @@ instance FromJSON AspectRatio where
   parseJSON = withText "AspectRatio" $ \t -> do
     case T.splitOn ":" t of
       [w, h] -> case (reads $ T.unpack w, reads $ T.unpack h) of
-        ([(width, "")], [(height, "")]) -> 
+        ([(width, "")], [(height, "")]) ->
           if width > 0 && height > 0
           then pure $ AspectRatio width height
           else fail "Aspect ratio dimensions must be positive"
