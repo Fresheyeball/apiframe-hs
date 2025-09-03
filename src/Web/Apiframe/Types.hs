@@ -7,8 +7,6 @@ import qualified Data.Text as T
 import GHC.Generics
 import Data.Time (UTCTime)
 
--- Newtype wrappers for domain-specific text values
-
 newtype TaskId = TaskId Text
   deriving stock (Generic)
   deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
@@ -523,21 +521,33 @@ instance FromJSON Dimension where
 
 data TaskStatus
   = StatusPending
+  | StatusStaged
+  | StatusStarting
   | StatusProcessing
-  | StatusCompleted
+  | StatusFinished
   | StatusFailed
+  | StatusRetry
+  | StatusRetrying
   deriving (Show, Eq, Generic, Bounded, Enum)
 
 instance FromJSON TaskStatus where
   parseJSON = withText "TaskStatus" $ \case
     "pending" -> pure StatusPending
+    "staged" -> pure StatusStaged
+    "starting" -> pure StatusStarting
     "processing" -> pure StatusProcessing
-    "completed" -> pure StatusCompleted
+    "finished" -> pure StatusFinished
     "failed" -> pure StatusFailed
+    "retry" -> pure StatusRetry
+    "retrying" -> pure StatusRetrying
     _ -> fail "Invalid task status"
 
 instance ToJSON TaskStatus where
   toJSON StatusPending = "pending"
+  toJSON StatusStaged = "staged"
+  toJSON StatusStarting = "starting"
   toJSON StatusProcessing = "processing"
-  toJSON StatusCompleted = "completed"
+  toJSON StatusFinished = "finished"
   toJSON StatusFailed = "failed"
+  toJSON StatusRetry = "retry"
+  toJSON StatusRetrying = "retrying"
