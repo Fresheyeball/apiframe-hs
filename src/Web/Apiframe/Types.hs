@@ -8,44 +8,44 @@ import GHC.Generics
 import Data.Time (UTCTime)
 
 newtype TaskId = TaskId Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype Prompt = Prompt Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype ImageUrl = ImageUrl Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype Base64Image = Base64Image Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype VariationsIndex = VariationsIndex Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype WebhookUrl = WebhookUrl Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype WebhookSecret = WebhookSecret Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype Email = Email Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype Plan = Plan Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 newtype ErrorMessage = ErrorMessage Text
-  deriving stock (Generic)
-  deriving newtype (Eq, Show, Read, ToJSON, FromJSON)
+  deriving stock (Generic, Eq, Show, Read)
+  deriving newtype (ToJSON, FromJSON)
 
 -- Helper functions to extract underlying text values
 unTaskId :: TaskId -> Text
@@ -291,7 +291,7 @@ instance ToJSON FaceswapRequest where
     , "webhook_secret" .= faceswapWebhookSecret
     ]
 
-data FetchRequest = FetchRequest
+newtype FetchRequest = FetchRequest
   { fetchTaskId :: TaskId
   } deriving (Show, Eq, Generic)
 
@@ -300,7 +300,7 @@ instance ToJSON FetchRequest where
     [ "task_id" .= fetchTaskId
     ]
 
-data FetchManyRequest = FetchManyRequest
+newtype FetchManyRequest = FetchManyRequest
   { fetchManyTaskIds :: [TaskId] -- Min 2, max 20
   } deriving (Show, Eq, Generic)
 
@@ -362,7 +362,7 @@ instance FromJSON AccountResponse where
     <*> v .:? "next_billing_date"
     <*> v .: "total_images"
 
-data ErrorResponse = ErrorResponse
+newtype ErrorResponse = ErrorResponse
   { errorErrors :: [ApiError]
   } deriving (Show, Eq, Generic)
 
@@ -370,7 +370,7 @@ instance FromJSON ErrorResponse where
   parseJSON = withObject "ErrorResponse" $ \v -> ErrorResponse
     <$> v .: "errors"
 
-data ApiError = ApiError
+newtype ApiError = ApiError
   { apiErrorMsg :: ErrorMessage
   } deriving (Show, Eq, Generic)
 
