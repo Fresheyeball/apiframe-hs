@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
+{-# OPTIONS_GHC -Wno-partial-fields #-}
 {-# LANGUAGE DerivingVia #-}
 module Web.Apiframe.Types where
 
@@ -6,7 +7,6 @@ import Data.Aeson
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics
-import Data.Time (UTCTime)
 
 stripQuotes :: Text -> Text
 stripQuotes = T.replace "\"" ""
@@ -78,6 +78,31 @@ newtype ErrorMessage = ErrorMessage Text
   deriving newtype (Eq, ToJSON, FromJSON)
   deriving (Show, Read) via NoQuotes
 
+newtype PngUrl = PngUrl Text
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
+
+newtype Mp4Url = Mp4Url Text
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
+
+newtype Percentage = Percentage Int
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read)
+
+newtype Seed = Seed Text
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
+
+newtype Sref = Sref Text
+  deriving stock (Generic)
+  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving (Show, Read) via NoQuotes
+
 -- Helper functions to extract underlying text values
 unTaskId :: TaskId -> Text
 unTaskId (TaskId t) = t
@@ -108,6 +133,21 @@ unPlan (Plan t) = t
 
 unErrorMessage :: ErrorMessage -> Text
 unErrorMessage (ErrorMessage t) = t
+
+unPngUrl :: PngUrl -> Text
+unPngUrl (PngUrl t) = t
+
+unMp4Url :: Mp4Url -> Text
+unMp4Url (Mp4Url t) = t
+
+unPercentage :: Percentage -> Int
+unPercentage (Percentage i) = i
+
+unSeed :: Seed -> Text
+unSeed (Seed t) = t
+
+unSref :: Sref -> Text
+unSref (Sref t) = t
 
 -- Request Types
 
@@ -352,23 +392,189 @@ instance FromJSON TaskResponse where
     <$> v .: "task_id"
     <*> v .:? "errors"
 
-data FetchResponse = FetchResponse
-  { fetchTaskId :: TaskId
-  , fetchStatus :: TaskStatus
-  , fetchPrompt :: Maybe Prompt
-  , fetchResult :: Maybe Value -- Can contain various result data
-  , fetchCreatedAt :: Maybe UTCTime
-  , fetchUpdatedAt :: Maybe UTCTime
-  } deriving (Show, Eq, Generic)
+data FetchResponse
+  = FetchProcessing
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType
+      , fetchStatus :: Text -- "processing" or "starting"
+      , fetchPercentage :: Maybe Percentage
+      }
+  | FetchImagineComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeImagine
+      , fetchSref :: Maybe Sref
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchImagineVideoComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeImagineVideo
+      , fetchVideoUrls :: [Mp4Url]
+      }
+  | FetchRerollComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeReroll
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchUpscaleComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeUpscale*
+      , fetchImageUrl :: PngUrl
+      }
+  | FetchVariationComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeVariation*
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchFaceswapComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeFaceswap
+      , fetchImageUrl :: PngUrl
+      }
+  | FetchInpaintComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeInpaint
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchOutpaintComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeOutpaint
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchPanComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypePan
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchShortenComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeShorten
+      , fetchContent :: [Text]
+      , fetchFullContent :: Maybe Text
+      }
+  | FetchDescribeComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeDescribe
+      , fetchImageUrl :: PngUrl
+      , fetchContent :: [Text]
+      }
+  | FetchBlendComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeBlend
+      , fetchOriginalImageUrl :: PngUrl
+      , fetchImageUrls :: [PngUrl]
+      }
+  | FetchSeedComplete
+      { fetchTaskId :: TaskId
+      , fetchTaskType :: TaskType -- TaskTypeSeed
+      , fetchSeed :: Seed
+      }
+  deriving (Show, Eq, Generic)
 
 instance FromJSON FetchResponse where
-  parseJSON = withObject "FetchResponse" $ \v -> FetchResponse
-    <$> v .: "task_id"
-    <*> v .: "status"
-    <*> v .:? "prompt"
-    <*> v .:? "result"
-    <*> v .:? "created_at"
-    <*> v .:? "updated_at"
+  parseJSON = withObject "FetchResponse" $ \v -> do
+    taskId <- v .: "task_id"
+    taskType <- v .: "task_type"
+    statusMaybe <- v .:? "status"
+    
+    case statusMaybe of
+      Just status | status `elem` ["processing", "starting" :: Text] -> 
+        FetchProcessing taskId taskType status
+          <$> v .:? "percentage"
+      
+      _ -> case taskType of
+        TaskTypeImagine -> 
+          FetchImagineComplete taskId taskType
+            <$> v .:? "sref"
+            <*> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeImagineVideo ->
+          FetchImagineVideoComplete taskId taskType
+            <$> v .: "video_urls"
+        
+        TaskTypeReroll ->
+          FetchRerollComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeUpscale {} -> 
+          FetchUpscaleComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeUpscaleCreative ->
+          FetchUpscaleComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeUpscaleSubtle ->
+          FetchUpscaleComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeUpscale2x ->
+          FetchUpscaleComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeUpscale4x ->
+          FetchUpscaleComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeVariation {} ->
+          FetchVariationComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeVariationStrong ->
+          FetchVariationComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeVariationSubtle ->
+          FetchVariationComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeFaceswap ->
+          FetchFaceswapComplete taskId taskType
+            <$> v .: "image_url"
+        
+        TaskTypeInpaint ->
+          FetchInpaintComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeOutpaint {} ->
+          FetchOutpaintComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypePan {} ->
+          FetchPanComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeShorten ->
+          FetchShortenComplete taskId taskType
+            <$> v .: "content"
+            <*> v .:? "full_content"
+        
+        TaskTypeDescribe ->
+          FetchDescribeComplete taskId taskType
+            <$> v .: "image_url"
+            <*> v .: "content"
+        
+        TaskTypeBlend ->
+          FetchBlendComplete taskId taskType
+            <$> v .: "original_image_url"
+            <*> v .: "image_urls"
+        
+        TaskTypeSeed ->
+          FetchSeedComplete taskId taskType
+            <$> v .: "seed"
 
 newtype FetchManyResponse = FetchManyResponse
   { fetchManyTasks :: [FetchResponse]
@@ -582,3 +788,91 @@ instance ToJSON TaskStatus where
   toJSON StatusFailed = "failed"
   toJSON StatusRetry = "retry"
   toJSON StatusRetrying = "retrying"
+
+data TaskType
+  = TaskTypeImagine
+  | TaskTypeImagineVideo
+  | TaskTypeReroll
+  | TaskTypeUpscale ImageIndex -- e.g., upscale#1, upscale#2
+  | TaskTypeUpscaleCreative
+  | TaskTypeUpscaleSubtle
+  | TaskTypeUpscale2x
+  | TaskTypeUpscale4x
+  | TaskTypeVariation ImageIndex -- e.g., variation-1
+  | TaskTypeVariationStrong
+  | TaskTypeVariationSubtle
+  | TaskTypeFaceswap
+  | TaskTypeInpaint
+  | TaskTypeOutpaint Int -- e.g., outpaint-2
+  | TaskTypePan Direction -- e.g., pan-up, pan-down
+  | TaskTypeShorten
+  | TaskTypeDescribe
+  | TaskTypeBlend
+  | TaskTypeSeed
+  deriving (Show, Eq, Generic)
+
+instance FromJSON TaskType where
+  parseJSON = withText "TaskType" $ \t -> case t of
+    "imagine" -> pure TaskTypeImagine
+    "imagine-video" -> pure TaskTypeImagineVideo
+    "reroll" -> pure TaskTypeReroll
+    "upscale#1" -> pure $ TaskTypeUpscale Index1
+    "upscale#2" -> pure $ TaskTypeUpscale Index2
+    "upscale#3" -> pure $ TaskTypeUpscale Index3
+    "upscale#4" -> pure $ TaskTypeUpscale Index4
+    "upscale-creative" -> pure TaskTypeUpscaleCreative
+    "upscale-subtle" -> pure TaskTypeUpscaleSubtle
+    "upscale-2x" -> pure TaskTypeUpscale2x
+    "upscale-4x" -> pure TaskTypeUpscale4x
+    "variation-1" -> pure $ TaskTypeVariation Index1
+    "variation-2" -> pure $ TaskTypeVariation Index2
+    "variation-3" -> pure $ TaskTypeVariation Index3
+    "variation-4" -> pure $ TaskTypeVariation Index4
+    "variation-strong" -> pure TaskTypeVariationStrong
+    "variation-subtle" -> pure TaskTypeVariationSubtle
+    "faceswap" -> pure TaskTypeFaceswap
+    "inpaint" -> pure TaskTypeInpaint
+    "pan-up" -> pure $ TaskTypePan DirectionUp
+    "pan-down" -> pure $ TaskTypePan DirectionDown
+    "pan-left" -> pure $ TaskTypePan DirectionLeft
+    "pan-right" -> pure $ TaskTypePan DirectionRight
+    "shorten" -> pure TaskTypeShorten
+    "describe" -> pure TaskTypeDescribe
+    "blend" -> pure TaskTypeBlend
+    "seed" -> pure TaskTypeSeed
+    s | T.isPrefixOf "outpaint-" s -> do
+      let numStr = T.drop 9 s
+      case reads (T.unpack numStr) of
+        [(n, "")] -> pure $ TaskTypeOutpaint n
+        _ -> fail $ "Invalid outpaint type: " <> T.unpack t
+    _ -> fail $ "Unknown task type: " <> T.unpack t
+
+instance ToJSON TaskType where
+  toJSON TaskTypeImagine = "imagine"
+  toJSON TaskTypeImagineVideo = "imagine-video"
+  toJSON TaskTypeReroll = "reroll"
+  toJSON (TaskTypeUpscale Index1) = "upscale#1"
+  toJSON (TaskTypeUpscale Index2) = "upscale#2"
+  toJSON (TaskTypeUpscale Index3) = "upscale#3"
+  toJSON (TaskTypeUpscale Index4) = "upscale#4"
+  toJSON TaskTypeUpscaleCreative = "upscale-creative"
+  toJSON TaskTypeUpscaleSubtle = "upscale-subtle"
+  toJSON TaskTypeUpscale2x = "upscale-2x"
+  toJSON TaskTypeUpscale4x = "upscale-4x"
+  toJSON (TaskTypeVariation Index1) = "variation-1"
+  toJSON (TaskTypeVariation Index2) = "variation-2"
+  toJSON (TaskTypeVariation Index3) = "variation-3"
+  toJSON (TaskTypeVariation Index4) = "variation-4"
+  toJSON TaskTypeVariationStrong = "variation-strong"
+  toJSON TaskTypeVariationSubtle = "variation-subtle"
+  toJSON TaskTypeFaceswap = "faceswap"
+  toJSON TaskTypeInpaint = "inpaint"
+  toJSON (TaskTypeOutpaint n) = toJSON $ "outpaint-" <> T.pack (show n)
+  toJSON (TaskTypePan DirectionUp) = "pan-up"
+  toJSON (TaskTypePan DirectionDown) = "pan-down"
+  toJSON (TaskTypePan DirectionLeft) = "pan-left"
+  toJSON (TaskTypePan DirectionRight) = "pan-right"
+  toJSON TaskTypeShorten = "shorten"
+  toJSON TaskTypeDescribe = "describe"
+  toJSON TaskTypeBlend = "blend"
+  toJSON TaskTypeSeed = "seed"
