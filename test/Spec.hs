@@ -106,59 +106,59 @@ main = hspec $ do
     describe "JSON encoding/decoding properties" $ do
       it "AspectRatio JSON round-trip property" $
         property (jsonRoundTrip :: AspectRatio -> Bool)
-      
+
       it "ProcessMode JSON round-trip property" $
         property (jsonRoundTrip :: ProcessMode -> Bool)
-      
+
       it "Direction JSON round-trip property" $
         property (jsonRoundTrip :: Direction -> Bool)
-      
+
       it "UpscaleType JSON round-trip property" $
         property (jsonRoundTrip :: UpscaleType -> Bool)
-      
+
       it "UpscaleAltType JSON round-trip property" $
         property (jsonRoundTrip :: UpscaleAltType -> Bool)
-      
+
       it "ImageIndex JSON round-trip property" $
         property (jsonRoundTrip :: ImageIndex -> Bool)
-      
+
       it "Dimension JSON round-trip property" $
         property (jsonRoundTrip :: Dimension -> Bool)
-      
+
       it "TaskStatus JSON round-trip property" $
         property (jsonRoundTrip :: TaskStatus -> Bool)
-      
+
       it "ApiError JSON round-trip property" $
         property (jsonRoundTrip :: ApiError -> Bool)
-      
+
       -- Newtype JSON round-trip tests
       it "TaskId JSON round-trip property" $
         property (jsonRoundTrip :: TaskId -> Bool)
-      
+
       it "Prompt JSON round-trip property" $
         property (jsonRoundTrip :: Prompt -> Bool)
-      
+
       it "ImageUrl JSON round-trip property" $
         property (jsonRoundTrip :: ImageUrl -> Bool)
-      
+
       it "Base64Image JSON round-trip property" $
         property (jsonRoundTrip :: Base64Image -> Bool)
-      
+
       it "VariationsIndex JSON round-trip property" $
         property (jsonRoundTrip :: VariationsIndex -> Bool)
-      
+
       it "WebhookUrl JSON round-trip property" $
         property (jsonRoundTrip :: WebhookUrl -> Bool)
-      
+
       it "WebhookSecret JSON round-trip property" $
         property (jsonRoundTrip :: WebhookSecret -> Bool)
-      
+
       it "Email JSON round-trip property" $
         property (jsonRoundTrip :: Email -> Bool)
-      
+
       it "Plan JSON round-trip property" $
         property (jsonRoundTrip :: Plan -> Bool)
-      
+
       it "ErrorMessage JSON round-trip property" $
         property (jsonRoundTrip :: ErrorMessage -> Bool)
 
@@ -172,7 +172,7 @@ main = hspec $ do
           -- This matches the README.md example exactly
           let apiKey = T.pack apiKeyStr
           client <- mkApiframeClient apiKey
-          
+
           -- Generate an image (matching README example)
           let request = ImagineRequest
                 { imaginePrompt = Prompt "a nice day in the desert with my dog"
@@ -181,17 +181,17 @@ main = hspec $ do
                 , imagineWebhookUrl = Nothing
                 , imagineWebhookSecret = Nothing
                 }
-          
+
           result <- imagine client request
           case result of
             Left err -> expectationFailure $ "API call failed: " ++ show err
             Right TaskResponse{..} -> do
               -- Task was submitted successfully
               taskId `shouldSatisfy` (not . T.null . unTaskId)
-              
+
               -- Wait for task to complete and fetch result
               let fetchReq = FetchRequest { fetchTaskId = taskId }
-              
+
               -- Poll for completion (simple retry logic)
               let pollForCompletion retries = do
                     if retries <= 0
@@ -201,17 +201,17 @@ main = hspec $ do
                         case fetchResult of
                           Left err -> expectationFailure $ "Fetch failed: " ++ show err
                           Right FetchResponse{fetchStatus=status, fetchResult=maybeResult} -> case status of
-                            StatusCompleted -> case maybeResult of
+                            StatusFinished -> case maybeResult of
                               Just taskResult -> case extractImageUrl taskResult of
                                 Just imageUrl -> do
                                   -- Create output directory
                                   createDirectoryIfMissing True "test-output"
                                   let filename = "test-output/readme-example-" ++ T.unpack (unTaskId taskId) ++ ".jpg"
-                                  
+
                                   -- Download and save the image
                                   downloadImage imageUrl filename
                                   putStrLn $ "✅ Image saved to: " ++ filename
-                                  
+
                                 Nothing -> expectationFailure "No image URL found in result"
                               Nothing -> expectationFailure "No result data returned"
                             StatusFailed -> expectationFailure "Task failed"
@@ -222,5 +222,17 @@ main = hspec $ do
                             StatusProcessing -> do
                               putStrLn "🔄 Task processing, waiting..."
                               pollForCompletion (retries - 1)
-              
+                            StatusStaged -> do
+                              putStrLn "📋 Task staged, waiting..."
+                              pollForCompletion (retries - 1)
+                            StatusStarting -> do
+                              putStrLn "🚀 Task starting, waiting..."
+                              pollForCompletion (retries - 1)
+                            StatusRetry -> do
+                              putStrLn "🔁 Task retrying, waiting..."
+                              pollForCompletion (retries - 1)
+                            StatusRetrying -> do
+                              putStrLn "🔄 Task retrying, waiting..."
+                              pollForCompletion (retries - 1)
+
               pollForCompletion (12 :: Int)  -- Try for ~1 minute with 5s intervals

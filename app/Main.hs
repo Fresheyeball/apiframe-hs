@@ -3,7 +3,6 @@ module Main (main) where
 import qualified Data.Text as T
 import System.Environment (lookupEnv)
 import Web.Apiframe.Client
-import Web.Apiframe.Types
 
 main :: IO ()
 main = do
