@@ -2,7 +2,7 @@
 
 Haskell client library for [APIFRAME.PRO](https://apiframe.pro) (Midjourney API)
 
-This library provides a type-safe Haskell interface to the APIFRAME.PRO service using the Servant library for automatic client generation.
+This library is based on the official JS client for apiFrame, and provides a type-safe Haskell interface to the APIFRAME.PRO service using the Servant library for automatic client generation.
 
 ## Features
 
@@ -44,10 +44,10 @@ main :: IO ()
 main = do
   -- Get API key from environment
   apiKey <- pack <$> getEnv "APIFRAME_API_KEY"
-  
+
   -- Create client
   client <- mkApiframeClient apiKey
-  
+
   -- Generate an image
   let request = ImagineRequest
         { imaginePrompt = "a beautiful sunset over mountains"
@@ -56,7 +56,7 @@ main = do
         , imagineWebhookUrl = Nothing
         , imagineWebhookSecret = Nothing
         }
-  
+
   result <- imagine client request
   case result of
     Left err -> putStrLn $ "Error: " ++ show err
