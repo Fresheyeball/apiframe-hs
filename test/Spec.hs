@@ -160,6 +160,9 @@ instance Arbitrary FetchBlendComplete where
 instance Arbitrary FetchSeedComplete where
   arbitrary = FetchSeedComplete <$> arbitrary <*> pure TaskTypeSeed <*> arbitrary
 
+instance Arbitrary FetchFailed where
+  arbitrary = FetchFailed <$> arbitrary <*> arbitrary <*> pure StatusFailed <*> arbitrary <*> listOf (T.pack <$> arbitrary)
+
 instance Arbitrary FetchResponse where
   arbitrary = oneof
     [ FetchResponseProcessing <$> arbitrary
@@ -176,6 +179,7 @@ instance Arbitrary FetchResponse where
     , FetchResponseDescribeComplete <$> arbitrary
     , FetchResponseBlendComplete <$> arbitrary
     , FetchResponseSeedComplete <$> arbitrary
+    , FetchResponseFailed <$> arbitrary
     ]
 
 -- Property: JSON round-trip should preserve data
@@ -324,6 +328,10 @@ main = hspec $ do
                                 StatusStarting -> putStrLn "🚀 Task starting..."
                                 _ -> putStrLn $ "⏳ Task status: " ++ show (fetchProcessingStatus processing)
                               pollForCompletion (retries - 1)
+                            
+                            FetchResponseFailed failed -> do
+                              let errorMsg = maybe "Unknown error" (T.unpack . unErrorMessage) (fetchFailedMessage failed)
+                              expectationFailure $ "Task failed: " ++ errorMsg
                             
                             FetchResponseImagineComplete imagineResult -> do
                               let imageUrls = fetchImagineImageUrls imagineResult

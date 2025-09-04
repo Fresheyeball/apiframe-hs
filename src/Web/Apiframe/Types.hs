@@ -503,6 +503,14 @@ data FetchSeedComplete = FetchSeedComplete
   , fetchSeedSeed :: Seed
   } deriving (Show, Eq, Generic)
 
+data FetchFailed = FetchFailed
+  { fetchFailedTaskId :: TaskId
+  , fetchFailedTaskType :: TaskType
+  , fetchFailedStatus :: TaskStatus
+  , fetchFailedMessage :: Maybe ErrorMessage
+  , fetchFailedActions :: [Text]
+  } deriving (Show, Eq, Generic)
+
 -- Fetch Response ADT
 
 data FetchResponse
@@ -520,6 +528,7 @@ data FetchResponse
   | FetchResponseDescribeComplete FetchDescribeComplete
   | FetchResponseBlendComplete FetchBlendComplete
   | FetchResponseSeedComplete FetchSeedComplete
+  | FetchResponseFailed FetchFailed
   deriving (Show, Eq, Generic)
 
 instance FromJSON FetchResponse where
@@ -536,6 +545,11 @@ instance FromJSON FetchResponse where
               _ -> StatusProcessing -- shouldn't happen given the guard
         percentage <- v .:? "percentage"
         pure $ FetchResponseProcessing $ FetchProcessing taskId taskType status percentage
+      
+      Just "failed" -> do
+        message <- v .:? "message"
+        actions <- v .:? "actions" .!= []
+        pure $ FetchResponseFailed $ FetchFailed taskId taskType StatusFailed message actions
       
       _ -> case taskType of
         TaskTypeImagine -> do
