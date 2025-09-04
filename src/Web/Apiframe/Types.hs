@@ -658,39 +658,6 @@ instance FromJSON FetchResponse where
               seed <- v .: "seed"
               pure $ FetchResponseSeedComplete $ FetchSeedComplete taskId taskType seed
 
--- ToJSON instances for round-trip testing
-instance ToJSON FetchProcessing where
-  toJSON FetchProcessing{..} = object
-    [ "task_id" .= fetchProcessingTaskId
-    , "task_type" .= fetchProcessingTaskType
-    , "status" .= fetchProcessingStatus
-    , "percentage" .= fetchProcessingPercentage
-    ]
-
-instance ToJSON FetchImagineComplete where
-  toJSON FetchImagineComplete{..} = object
-    [ "task_id" .= fetchImagineTaskId
-    , "task_type" .= fetchImagineTaskType
-    , "sref" .= fetchImagineSref
-    , "original_image_url" .= fetchImagineOriginalImageUrl
-    , "image_urls" .= fetchImagineImageUrls
-    ]
-
-instance ToJSON FetchFailed where
-  toJSON FetchFailed{..} = object
-    [ "task_id" .= fetchFailedTaskId
-    , "task_type" .= fetchFailedTaskType
-    , "status" .= fetchFailedStatus
-    , "message" .= fetchFailedMessage
-    , "actions" .= fetchFailedActions
-    ]
-
-instance ToJSON FetchResponse where
-  toJSON (FetchResponseProcessing processing) = toJSON processing
-  toJSON (FetchResponseImagineComplete imagine) = toJSON imagine
-  toJSON (FetchResponseFailed failed) = toJSON failed
-  toJSON _ = error "ToJSON not implemented for all FetchResponse constructors (only needed for testing)"
-
 newtype FetchManyResponse = FetchManyResponse
   { fetchManyTasks :: [FetchResponse]
   } deriving (Show, Eq, Generic)

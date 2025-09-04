@@ -294,14 +294,7 @@ main = hspec $ do
       it "TaskType JSON round-trip property" $
         property (jsonRoundTrip :: TaskType -> Bool)
 
-      -- FetchResponse round-trip test (limited to implemented ToJSON cases)
-      it "FetchResponse JSON round-trip property (for implemented cases)" $ do
-        -- Test a few specific cases since not all constructors have ToJSON
-        let processing = FetchResponseProcessing $ FetchProcessing (TaskId "test") TaskTypeImagine StatusProcessing Nothing
-        jsonRoundTrip processing `shouldBe` True
-        
-        let failed = FetchResponseFailed $ FetchFailed (TaskId "test") TaskTypeImagine StatusFailed (Just (ErrorMessage "error")) []
-        jsonRoundTrip failed `shouldBe` True
+      -- Note: FetchResponse types only need FromJSON since they're response-only
 
     describe "Specific FetchResponse JSON parsing" $ do
       it "parses failed response correctly" $ do
