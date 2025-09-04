@@ -6,8 +6,10 @@ import Test.QuickCheck
 import Web.Apiframe.Types
 import Web.Apiframe.Client (mkApiframeClient, imagine, fetch)
 import Data.Aeson (decode, encode, ToJSON, FromJSON, Value(..))
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Lazy.Char8 as LBS8
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Aeson.Key as Key
 import qualified Data.Vector as V
@@ -15,6 +17,7 @@ import Network.HTTP.Client
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (lookupEnv)
+import Web.HttpApiData (toUrlPiece, parseUrlPiece)
 
 instance Arbitrary AspectRatio where
   arbitrary = do
@@ -73,6 +76,9 @@ instance Arbitrary Plan where
 
 instance Arbitrary ErrorMessage where
   arbitrary = ErrorMessage . T.pack <$> arbitrary
+
+instance Arbitrary ApiKey where
+  arbitrary = ApiKey . T.pack <$> arbitrary
 
 instance Arbitrary PngUrl where
   arbitrary = PngUrl . T.pack <$> arbitrary
@@ -265,6 +271,11 @@ main = hspec $ do
       it "ErrorMessage JSON round-trip property" $
         property (jsonRoundTrip :: ErrorMessage -> Bool)
 
+      it "ApiKey has proper ToHttpApiData/FromHttpApiData instances" $ do
+        let apiKey = ApiKey "test-key-123"
+        toUrlPiece apiKey `shouldBe` "test-key-123"
+        parseUrlPiece "test-key-123" `shouldBe` (Right apiKey :: Either Text ApiKey)
+
       it "PngUrl JSON round-trip property" $
         property (jsonRoundTrip :: PngUrl -> Bool)
 
@@ -282,6 +293,36 @@ main = hspec $ do
 
       it "TaskType JSON round-trip property" $
         property (jsonRoundTrip :: TaskType -> Bool)
+
+      -- FetchResponse round-trip test (limited to implemented ToJSON cases)
+      it "FetchResponse JSON round-trip property (for implemented cases)" $ do
+        -- Test a few specific cases since not all constructors have ToJSON
+        let processing = FetchResponseProcessing $ FetchProcessing (TaskId "test") TaskTypeImagine StatusProcessing Nothing
+        jsonRoundTrip processing `shouldBe` True
+        
+        let failed = FetchResponseFailed $ FetchFailed (TaskId "test") TaskTypeImagine StatusFailed (Just (ErrorMessage "error")) []
+        jsonRoundTrip failed `shouldBe` True
+
+    describe "Specific FetchResponse JSON parsing" $ do
+      it "parses failed response correctly" $ do
+        let failedJson = "{\"task_id\":\"bf3e018a-bf15-436a-bd0a-86dadccb834b\",\"status\":\"failed\",\"actions\":[],\"message\":\"invalid param[ar] --relax\",\"task_type\":\"imagine\"}"
+        case decode (LBS8.pack failedJson) of
+          Nothing -> expectationFailure "Failed to parse failed response JSON"
+          Just (FetchResponseFailed failed) -> do
+            unTaskId (fetchFailedTaskId failed) `shouldBe` "bf3e018a-bf15-436a-bd0a-86dadccb834b"
+            fetchFailedStatus failed `shouldBe` StatusFailed
+            fetchFailedMessage failed `shouldBe` Just (ErrorMessage "invalid param[ar] --relax")
+            fetchFailedActions failed `shouldBe` []
+          Just other -> expectationFailure $ "Expected FetchResponseFailed but got: " ++ show other
+
+      it "parses staged response correctly" $ do
+        let stagedJson = "{\"task_id\":\"f5970839-baa6-42a2-ba5a-0d7e4d632b3a\",\"status\":\"staged\"}"
+        case decode (LBS8.pack stagedJson) of
+          Nothing -> expectationFailure "Failed to parse staged response JSON"
+          Just (FetchResponseProcessing processing) -> do
+            unTaskId (fetchProcessingTaskId processing) `shouldBe` "f5970839-baa6-42a2-ba5a-0d7e4d632b3a"
+            fetchProcessingStatus processing `shouldBe` StatusStaged
+          Just other -> expectationFailure $ "Expected FetchResponseProcessing but got: " ++ show other
 
   -- Integration test (only runs if API key is set)
   describe "Web.Apiframe.Client Integration" $ do
@@ -326,6 +367,7 @@ main = hspec $ do
                               case fetchProcessingStatus processing of
                                 StatusProcessing -> putStrLn $ "🔄 Task processing" ++ maybe "" (\p -> " (" ++ show (unPercentage p) ++ "%)") (fetchProcessingPercentage processing)
                                 StatusStarting -> putStrLn "🚀 Task starting..."
+                                StatusStaged -> putStrLn "📋 Task staged..."
                                 _ -> putStrLn $ "⏳ Task status: " ++ show (fetchProcessingStatus processing)
                               pollForCompletion (retries - 1)
                             

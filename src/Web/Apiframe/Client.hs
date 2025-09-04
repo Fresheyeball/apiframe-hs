@@ -37,7 +37,7 @@ import Web.Apiframe.Types
 
 -- | Configuration for the Apiframe client
 data ApiframeClient = ApiframeClient
-  { apiframeApiKey :: Text
+  { apiframeApiKey :: ApiKey
   , apiframeManager :: Manager
   , apiframeBaseUrl :: BaseUrl
   }
@@ -47,7 +47,7 @@ mkApiframeClient :: MonadIO m => Text -> m ApiframeClient
 mkApiframeClient apiKey = do
   manager <- liftIO $ newManager tlsManagerSettings
   return ApiframeClient
-    { apiframeApiKey = apiKey
+    { apiframeApiKey = ApiKey apiKey
     , apiframeManager = manager
     , apiframeBaseUrl = BaseUrl Https "api.apiframe.pro" 443 ""
     }
@@ -58,22 +58,22 @@ runApiframe ApiframeClient{..} action =
   runClientM action (mkClientEnv apiframeManager apiframeBaseUrl)
 
 -- Generate client functions from the API definition
-imagineClient :: Text -> ImagineRequest -> ClientM TaskResponse
-upscale1xClient :: Text -> UpscaleRequest -> ClientM TaskResponse
-upscaleAltClient :: Text -> UpscaleAltRequest -> ClientM TaskResponse
-upscaleHighresClient :: Text -> UpscaleHighresRequest -> ClientM TaskResponse
-rerollClient :: Text -> RerollRequest -> ClientM TaskResponse
-variationsClient :: Text -> VariationsRequest -> ClientM TaskResponse
-inpaintClient :: Text -> InpaintRequest -> ClientM TaskResponse
-outpaintClient :: Text -> OutpaintRequest -> ClientM TaskResponse
-panClient :: Text -> PanRequest -> ClientM TaskResponse
-describeClient :: Text -> DescribeRequest -> ClientM TaskResponse
-blendClient :: Text -> BlendRequest -> ClientM TaskResponse
-seedClient :: Text -> SeedRequest -> ClientM TaskResponse
-faceswapClient :: Text -> FaceswapRequest -> ClientM TaskResponse
-fetchClient :: Text -> FetchRequest -> ClientM FetchResponse
-fetchManyClient :: Text -> FetchManyRequest -> ClientM FetchManyResponse
-accountClient :: Text -> ClientM AccountResponse
+imagineClient :: ApiKey -> ImagineRequest -> ClientM TaskResponse
+upscale1xClient :: ApiKey -> UpscaleRequest -> ClientM TaskResponse
+upscaleAltClient :: ApiKey -> UpscaleAltRequest -> ClientM TaskResponse
+upscaleHighresClient :: ApiKey -> UpscaleHighresRequest -> ClientM TaskResponse
+rerollClient :: ApiKey -> RerollRequest -> ClientM TaskResponse
+variationsClient :: ApiKey -> VariationsRequest -> ClientM TaskResponse
+inpaintClient :: ApiKey -> InpaintRequest -> ClientM TaskResponse
+outpaintClient :: ApiKey -> OutpaintRequest -> ClientM TaskResponse
+panClient :: ApiKey -> PanRequest -> ClientM TaskResponse
+describeClient :: ApiKey -> DescribeRequest -> ClientM TaskResponse
+blendClient :: ApiKey -> BlendRequest -> ClientM TaskResponse
+seedClient :: ApiKey -> SeedRequest -> ClientM TaskResponse
+faceswapClient :: ApiKey -> FaceswapRequest -> ClientM TaskResponse
+fetchClient :: ApiKey -> FetchRequest -> ClientM FetchResponse
+fetchManyClient :: ApiKey -> FetchManyRequest -> ClientM FetchManyResponse
+accountClient :: ApiKey -> ClientM AccountResponse
 
 imagineClient
   :<|> upscale1xClient

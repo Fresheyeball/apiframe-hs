@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import GHC.Generics
 import Data.Scientific
 import Text.Read (readMaybe)
+import Web.HttpApiData (ToHttpApiData, FromHttpApiData)
 
 stripQuotes :: Text -> Text
 stripQuotes = T.replace "\"" ""
@@ -79,6 +80,11 @@ newtype ErrorMessage = ErrorMessage Text
   deriving newtype (Eq, ToJSON, FromJSON)
   deriving (Show, Read) via NoQuotes
 
+newtype ApiKey = ApiKey Text
+  deriving stock (Generic)
+  deriving newtype (Eq, ToHttpApiData, FromHttpApiData)
+  deriving (Show, Read) via NoQuotes
+
 newtype PngUrl = PngUrl Text
   deriving stock (Generic)
   deriving newtype (Eq, ToJSON, FromJSON)
@@ -147,6 +153,9 @@ unPlan (Plan t) = t
 
 unErrorMessage :: ErrorMessage -> Text
 unErrorMessage (ErrorMessage t) = t
+
+unApiKey :: ApiKey -> Text
+unApiKey (ApiKey t) = t
 
 unPngUrl :: PngUrl -> Text
 unPngUrl (PngUrl t) = t
@@ -534,111 +543,153 @@ data FetchResponse
 instance FromJSON FetchResponse where
   parseJSON = withObject "FetchResponse" $ \v -> do
     taskId <- v .: "task_id"
-    taskType <- v .: "task_type"
     statusMaybe <- v .:? "status"
     
+    -- Handle staged status specially (it doesn't have task_type)
     case statusMaybe of
-      Just statusText | statusText `elem` ["processing", "starting" :: Text] -> do
-        let status = case statusText of
-              "processing" -> StatusProcessing
-              "starting" -> StatusStarting
-              _ -> StatusProcessing -- shouldn't happen given the guard
-        percentage <- v .:? "percentage"
-        pure $ FetchResponseProcessing $ FetchProcessing taskId taskType status percentage
+      Just "staged" -> do
+        -- Staged responses don't include task_type, so we use a placeholder
+        pure $ FetchResponseProcessing $ FetchProcessing taskId TaskTypeImagine StatusStaged Nothing
       
-      Just "failed" -> do
-        message <- v .:? "message"
-        actions <- v .:? "actions" .!= []
-        pure $ FetchResponseFailed $ FetchFailed taskId taskType StatusFailed message actions
-      
-      _ -> case taskType of
-        TaskTypeImagine -> do
-          sref <- v .:? "sref"
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseImagineComplete $ FetchImagineComplete taskId taskType sref originalImageUrl imageUrls
+      _ -> do
+        -- All other statuses require task_type
+        taskType <- v .: "task_type"
         
-        TaskTypeImagineVideo -> do
-          videoUrls <- v .: "video_urls"
-          pure $ FetchResponseImagineVideoComplete $ FetchImagineVideoComplete taskId taskType videoUrls
-        
-        TaskTypeReroll -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseRerollComplete $ FetchRerollComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeUpscale {} -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
-        
-        TaskTypeUpscaleCreative -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
-        
-        TaskTypeUpscaleSubtle -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
-        
-        TaskTypeUpscale2x -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
-        
-        TaskTypeUpscale4x -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
-        
-        TaskTypeVariation {} -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeVariationStrong -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeVariationSubtle -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeFaceswap -> do
-          imageUrl <- v .: "image_url"
-          pure $ FetchResponseFaceswapComplete $ FetchFaceswapComplete taskId taskType imageUrl
-        
-        TaskTypeInpaint -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseInpaintComplete $ FetchInpaintComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeOutpaint {} -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseOutpaintComplete $ FetchOutpaintComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypePan {} -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponsePanComplete $ FetchPanComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeShorten -> do
-          content <- v .: "content"
-          fullContent <- v .:? "full_content"
-          pure $ FetchResponseShortenComplete $ FetchShortenComplete taskId taskType content fullContent
-        
-        TaskTypeDescribe -> do
-          imageUrl <- v .: "image_url"
-          content <- v .: "content"
-          pure $ FetchResponseDescribeComplete $ FetchDescribeComplete taskId taskType imageUrl content
-        
-        TaskTypeBlend -> do
-          originalImageUrl <- v .: "original_image_url"
-          imageUrls <- v .: "image_urls"
-          pure $ FetchResponseBlendComplete $ FetchBlendComplete taskId taskType originalImageUrl imageUrls
-        
-        TaskTypeSeed -> do
-          seed <- v .: "seed"
-          pure $ FetchResponseSeedComplete $ FetchSeedComplete taskId taskType seed
+        case statusMaybe of
+          Just statusText | statusText `elem` ["processing", "starting" :: Text] -> do
+            let status = case statusText of
+                  "processing" -> StatusProcessing
+                  "starting" -> StatusStarting
+                  _ -> StatusProcessing -- shouldn't happen given the guard
+            percentage <- v .:? "percentage"
+            pure $ FetchResponseProcessing $ FetchProcessing taskId taskType status percentage
+          
+          Just "failed" -> do
+            message <- v .:? "message"
+            actions <- v .:? "actions" .!= []
+            pure $ FetchResponseFailed $ FetchFailed taskId taskType StatusFailed message actions
+          
+          _ -> case taskType of
+            TaskTypeImagine -> do
+              sref <- v .:? "sref"
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseImagineComplete $ FetchImagineComplete taskId taskType sref originalImageUrl imageUrls
+            
+            TaskTypeImagineVideo -> do
+              videoUrls <- v .: "video_urls"
+              pure $ FetchResponseImagineVideoComplete $ FetchImagineVideoComplete taskId taskType videoUrls
+            
+            TaskTypeReroll -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseRerollComplete $ FetchRerollComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeUpscale {} -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
+            
+            TaskTypeUpscaleCreative -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
+            
+            TaskTypeUpscaleSubtle -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
+            
+            TaskTypeUpscale2x -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
+            
+            TaskTypeUpscale4x -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseUpscaleComplete $ FetchUpscaleComplete taskId taskType imageUrl
+            
+            TaskTypeVariation {} -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeVariationStrong -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeVariationSubtle -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseVariationComplete $ FetchVariationComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeFaceswap -> do
+              imageUrl <- v .: "image_url"
+              pure $ FetchResponseFaceswapComplete $ FetchFaceswapComplete taskId taskType imageUrl
+            
+            TaskTypeInpaint -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseInpaintComplete $ FetchInpaintComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeOutpaint {} -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseOutpaintComplete $ FetchOutpaintComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypePan {} -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponsePanComplete $ FetchPanComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeShorten -> do
+              content <- v .: "content"
+              fullContent <- v .:? "full_content"
+              pure $ FetchResponseShortenComplete $ FetchShortenComplete taskId taskType content fullContent
+            
+            TaskTypeDescribe -> do
+              imageUrl <- v .: "image_url"
+              content <- v .: "content"
+              pure $ FetchResponseDescribeComplete $ FetchDescribeComplete taskId taskType imageUrl content
+            
+            TaskTypeBlend -> do
+              originalImageUrl <- v .: "original_image_url"
+              imageUrls <- v .: "image_urls"
+              pure $ FetchResponseBlendComplete $ FetchBlendComplete taskId taskType originalImageUrl imageUrls
+            
+            TaskTypeSeed -> do
+              seed <- v .: "seed"
+              pure $ FetchResponseSeedComplete $ FetchSeedComplete taskId taskType seed
+
+-- ToJSON instances for round-trip testing
+instance ToJSON FetchProcessing where
+  toJSON FetchProcessing{..} = object
+    [ "task_id" .= fetchProcessingTaskId
+    , "task_type" .= fetchProcessingTaskType
+    , "status" .= fetchProcessingStatus
+    , "percentage" .= fetchProcessingPercentage
+    ]
+
+instance ToJSON FetchImagineComplete where
+  toJSON FetchImagineComplete{..} = object
+    [ "task_id" .= fetchImagineTaskId
+    , "task_type" .= fetchImagineTaskType
+    , "sref" .= fetchImagineSref
+    , "original_image_url" .= fetchImagineOriginalImageUrl
+    , "image_urls" .= fetchImagineImageUrls
+    ]
+
+instance ToJSON FetchFailed where
+  toJSON FetchFailed{..} = object
+    [ "task_id" .= fetchFailedTaskId
+    , "task_type" .= fetchFailedTaskType
+    , "status" .= fetchFailedStatus
+    , "message" .= fetchFailedMessage
+    , "actions" .= fetchFailedActions
+    ]
+
+instance ToJSON FetchResponse where
+  toJSON (FetchResponseProcessing processing) = toJSON processing
+  toJSON (FetchResponseImagineComplete imagine) = toJSON imagine
+  toJSON (FetchResponseFailed failed) = toJSON failed
+  toJSON _ = error "ToJSON not implemented for all FetchResponse constructors (only needed for testing)"
 
 newtype FetchManyResponse = FetchManyResponse
   { fetchManyTasks :: [FetchResponse]
