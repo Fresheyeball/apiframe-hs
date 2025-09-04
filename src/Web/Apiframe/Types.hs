@@ -6,6 +6,8 @@ import Data.Aeson
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics
+import Data.Scientific
+import Text.Read (readMaybe)
 
 stripQuotes :: Text -> Text
 stripQuotes = T.replace "\"" ""
@@ -89,8 +91,21 @@ newtype Mp4Url = Mp4Url Text
 
 newtype Percentage = Percentage Int
   deriving stock (Generic)
-  deriving newtype (Eq, ToJSON, FromJSON)
+  deriving newtype (Eq)
   deriving (Show, Read)
+
+instance ToJSON Percentage where
+  toJSON = toJSON . show . unPercentage
+
+instance FromJSON Percentage where
+  parseJSON z = case z of
+    String x -> case readMaybe $ T.unpack x of
+                  Nothing -> fail $ T.unpack x <> " not a number"
+                  Just y -> return $ Percentage y
+    Number x -> case toBoundedInteger x of
+                  Nothing -> fail $ show x <> " is not an integer"
+                  Just y -> return $ Percentage y
+    _ -> fail $ show z <> " is not a percentage"
 
 newtype Seed = Seed Text
   deriving stock (Generic)
